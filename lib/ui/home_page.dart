@@ -259,6 +259,7 @@ class _HomePageState extends State<HomePage> {
     final currentEntries = await _incomeRepository.load(currency.code);
     await _incomeRepository.save(currency.code, [entry, ...currentEntries]);
     await _historyKey.currentState?.refresh(currency.code);
+    await _dashboardController.refresh();
 
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -316,6 +317,7 @@ class _HomePageState extends State<HomePage> {
     final currentEntries = await _expenseRepository.load(currency.code);
     await _expenseRepository.save(currency.code, [entry, ...currentEntries]);
     await _historyKey.currentState?.refresh(currency.code);
+    await _dashboardController.refresh();
 
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(

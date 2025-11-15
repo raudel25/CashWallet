@@ -52,7 +52,7 @@ void main() {
     await tester.pumpWidget(const CashWalletApp());
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Registrar movimiento'));
+    await tester.tap(find.text('Registrar movimiento')); 
     await tester.pumpAndSettle();
 
     expect(find.text('Nuevo ingreso'), findsOneWidget);

@@ -77,6 +77,8 @@ class DashboardController {
     await _loadSummary();
   }
 
+  Future<void> refresh() => _loadSummary();
+
   Future<void> _loadSummary() async {
     final incomesFuture = _incomeRepository.load(_currencyCode);
     final expensesFuture = _expenseRepository.load(_currencyCode);
