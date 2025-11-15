@@ -6,6 +6,7 @@ import '../data/denomination_repository.dart';
 import '../models/cash_entry.dart';
 import '../models/denomination.dart';
 import '../models/denomination_count.dart';
+import '../controllers/dashboard_controller.dart';
 import 'pages/dashboard_page.dart';
 import 'pages/denominations_page.dart';
 import 'pages/history_page.dart';
@@ -18,8 +19,10 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  final _dashboardKey = GlobalKey<DashboardPageState>();
   final _historyKey = GlobalKey<HistoryPageState>();
   final _settingsKey = GlobalKey<DenominationsPageState>();
+  late final DashboardController _dashboardController;
 
   final _incomeRepository = const CashEntryRepository('cash_wallet_incomes');
   final _expenseRepository = const CashEntryRepository('cash_wallet_expenses');
@@ -33,14 +36,24 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
 
+    _dashboardController = DashboardController(
+      incomeRepository: _incomeRepository,
+      expenseRepository: _expenseRepository,
+      onSummaryUpdated: (summary) {
+        _dashboardKey.currentState?.updateSummary(summary);
+      },
+    );
+
+    _dashboardController.init();
+
     _pages = [
-      const DashboardPage(),
+      DashboardPage(key: _dashboardKey, controller: _dashboardController),
       HistoryPage(
         key: _historyKey,
         incomeRepository: _incomeRepository,
         expenseRepository: _expenseRepository,
       ),
-      DenominationsPage(key: _settingsKey),
+      DenominationsPage(key: _settingsKey, loadStock: _loadDenominationStock),
     ];
 
     _destinations = const [
@@ -63,6 +76,12 @@ class _HomePageState extends State<HomePage> {
         selectedIcon: Icons.settings,
       ),
     ];
+  }
+
+  @override
+  void dispose() {
+    _dashboardController.dispose();
+    super.dispose();
   }
 
   @override
@@ -189,7 +208,20 @@ class _HomePageState extends State<HomePage> {
       return;
     }
 
-    final result = await _showExpenseFormSheet(denominations);
+    final stock = await _loadDenominationStock();
+    final totalPieces = stock.values.fold<int>(0, (sum, qty) => sum + qty);
+    if (totalPieces <= 0) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'No tienes efectivo disponible para registrar un gasto.',
+          ),
+        ),
+      );
+      return;
+    }
+    final result = await _showExpenseFormSheet(denominations, stock);
     if (result == null) return;
 
     final entry = CashEntry.createExpense(
@@ -226,12 +258,39 @@ class _HomePageState extends State<HomePage> {
 
   Future<_ExpenseFormResult?> _showExpenseFormSheet(
     List<Denomination> denominations,
+    Map<double, int> availableStock,
   ) {
     return showModalBottomSheet<_ExpenseFormResult>(
       context: context,
       isScrollControlled: true,
-      builder: (context) => _ExpenseFormSheet(denominations: denominations),
+      builder: (context) => _ExpenseFormSheet(
+        denominations: denominations,
+        availableStock: availableStock,
+      ),
     );
+  }
+
+  Future<Map<double, int>> _loadDenominationStock() async {
+    final incomes = await _incomeRepository.load();
+    final expenses = await _expenseRepository.load();
+    final Map<double, int> stock = {};
+
+    void accumulate(List<CashEntry> entries, int multiplier) {
+      for (final entry in entries) {
+        for (final breakdown in entry.breakdown) {
+          stock[breakdown.denomination] =
+              (stock[breakdown.denomination] ?? 0) +
+              breakdown.quantity * multiplier;
+          if ((stock[breakdown.denomination] ?? 0) <= 0) {
+            stock.remove(breakdown.denomination);
+          }
+        }
+      }
+    }
+
+    accumulate(incomes, 1);
+    accumulate(expenses, -1);
+    return stock;
   }
 }
 
@@ -356,7 +415,7 @@ class _IncomeFormSheetState extends State<_IncomeFormSheet> {
           Text('Nuevo ingreso', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 12),
           Text(
-            'Indica cuántas piezas de cada denominación vas a guardar.',
+            'Indica cuántas unidades de cada denominación vas a guardar.',
             style: Theme.of(context).textTheme.bodyMedium,
           ),
           const SizedBox(height: 16),
@@ -372,7 +431,7 @@ class _IncomeFormSheetState extends State<_IncomeFormSheet> {
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                   decoration: InputDecoration(
                     labelText: '\$ ${denomination.value.toStringAsFixed(2)}',
-                    suffixText: 'piezas',
+                    suffixText: 'unidades',
                   ),
                   onChanged: (_) => _updateTotal(),
                 );
@@ -418,9 +477,13 @@ class _IncomeFormSheetState extends State<_IncomeFormSheet> {
 }
 
 class _ExpenseFormSheet extends StatefulWidget {
-  const _ExpenseFormSheet({required this.denominations});
+  const _ExpenseFormSheet({
+    required this.denominations,
+    required this.availableStock,
+  });
 
   final List<Denomination> denominations;
+  final Map<double, int> availableStock;
 
   @override
   State<_ExpenseFormSheet> createState() => _ExpenseFormSheetState();
@@ -430,6 +493,7 @@ class _ExpenseFormSheetState extends State<_ExpenseFormSheet> {
   late final Map<double, TextEditingController> _quantityControllers;
   late final TextEditingController _descriptionController;
   double _total = 0;
+  Map<double, String> _errors = {};
 
   @override
   void initState() {
@@ -483,10 +547,27 @@ class _ExpenseFormSheetState extends State<_ExpenseFormSheet> {
       return;
     }
 
+    final breakdown = _buildBreakdown();
+    final Map<double, String> newErrors = {};
+    for (final item in breakdown) {
+      final available = widget.availableStock[item.denomination] ?? 0;
+      if (item.quantity > available) {
+        newErrors[item.denomination] =
+            'Solo tienes $available unidades de \$${item.denomination.toStringAsFixed(2)}.';
+      }
+    }
+    if (newErrors.isNotEmpty) {
+      setState(() => _errors = newErrors);
+      return;
+    }
+    if (_errors.isNotEmpty) {
+      setState(() => _errors = {});
+    }
+
     Navigator.of(context).pop(
       _ExpenseFormResult(
         description: _descriptionController.text.trim(),
-        breakdown: _buildBreakdown(),
+        breakdown: breakdown,
       ),
     );
   }
@@ -507,7 +588,7 @@ class _ExpenseFormSheetState extends State<_ExpenseFormSheet> {
           Text('Nuevo gasto', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 12),
           Text(
-            'Indica cuántas piezas de cada denominación vas a usar.',
+            'Indica cuántas unidades de cada denominación vas a usar.',
             style: Theme.of(context).textTheme.bodyMedium,
           ),
           const SizedBox(height: 16),
@@ -517,15 +598,37 @@ class _ExpenseFormSheetState extends State<_ExpenseFormSheet> {
               itemBuilder: (context, index) {
                 final denomination = widget.denominations[index];
                 final controller = _quantityControllers[denomination.value]!;
-                return TextFormField(
-                  controller: controller,
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  decoration: InputDecoration(
-                    labelText: '\$ ${denomination.value.toStringAsFixed(2)}',
-                    suffixText: 'piezas',
-                  ),
-                  onChanged: (_) => _updateTotal(),
+                final error = _errors[denomination.value];
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    TextFormField(
+                      controller: controller,
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      decoration: InputDecoration(
+                        labelText:
+                            '\$ ${denomination.value.toStringAsFixed(2)}',
+                        suffixText: 'unidades',
+                      ),
+                      onChanged: (_) {
+                        _updateTotal();
+                        if (_errors.containsKey(denomination.value)) {
+                          setState(() {
+                            _errors.remove(denomination.value);
+                          });
+                        }
+                      },
+                    ),
+                    if (error != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Text(
+                          error,
+                          style: TextStyle(color: Colors.red.shade700),
+                        ),
+                      ),
+                  ],
                 );
               },
               separatorBuilder: (_, __) => const SizedBox(height: 8),

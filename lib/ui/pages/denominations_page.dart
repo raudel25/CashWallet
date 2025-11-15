@@ -4,7 +4,9 @@ import '../../data/denomination_repository.dart';
 import '../../models/denomination.dart';
 
 class DenominationsPage extends StatefulWidget {
-  const DenominationsPage({super.key});
+  const DenominationsPage({super.key, required this.loadStock});
+
+  final Future<Map<double, int>> Function() loadStock;
 
   @override
   DenominationsPageState createState() => DenominationsPageState();
@@ -52,6 +54,20 @@ class DenominationsPageState extends State<DenominationsPage> {
   }
 
   Future<void> _removeDenomination(Denomination denomination) async {
+    final stock = await widget.loadStock();
+    final available = stock[denomination.value] ?? 0;
+    if (available > 0) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'No puedes eliminar \$${denomination.value.toStringAsFixed(2)} porque aún tienes $available unidades.',
+          ),
+        ),
+      );
+      return;
+    }
+
     final updated = _denominations.where((d) => d != denomination).toList();
     await _repository.save(updated);
 

@@ -21,7 +21,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Inicio'), findsWidgets);
-    expect(find.text('Bienvenido a tu Cash Wallet'), findsOneWidget);
+    expect(find.text('Saldo total'), findsOneWidget);
     expect(find.text('Registrar movimiento'), findsOneWidget);
   });
 
