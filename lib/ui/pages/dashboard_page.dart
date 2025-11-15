@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../controllers/dashboard_controller.dart';
+import '../../l10n/app_localizations.dart';
 import '../../models/currency.dart';
 
 class DashboardPage extends StatefulWidget {
@@ -49,7 +50,9 @@ class DashboardPageState extends State<DashboardPage> {
     final previousNet = summary?.netPrevious ?? 0;
     final diff = net - previousNet;
     final trendColor = diff >= 0 ? Colors.green : Colors.red;
-    final comparisonText = diff >= 0 ? 'más que' : 'menos que';
+    final comparisonText = diff >= 0
+        ? context.t('dashboard_prefix_up')
+        : context.t('dashboard_prefix_down');
     final totalBalance = summary?.totalBalance ?? 0;
     final balances =
         summary?.denominationBalances ?? const <DenominationBalance>[];
@@ -61,10 +64,19 @@ class DashboardPageState extends State<DashboardPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Saldo total (${currency.code})',
+              context.t(
+                'dashboard_total_balance_title',
+                params: {'currency': currency.code},
+              ),
               style: Theme.of(context).textTheme.titleMedium,
             ),
-            Text(currency.name, style: Theme.of(context).textTheme.bodySmall),
+            Text(
+              context.t(
+                'dashboard_currency_name',
+                params: {'name': currency.name},
+              ),
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
             const SizedBox(height: 8),
             Text(
               '$symbol ${totalBalance.toStringAsFixed(2)}',
@@ -74,13 +86,21 @@ class DashboardPageState extends State<DashboardPage> {
             ),
             const SizedBox(height: 24),
             SegmentedButton<DashboardRange>(
-              segments: const [
-                ButtonSegment(value: DashboardRange.day, label: Text('Día')),
+              segments: [
+                ButtonSegment(
+                  value: DashboardRange.day,
+                  label: Text(context.loc.rangeLabel(DashboardRangeLabel.day)),
+                ),
                 ButtonSegment(
                   value: DashboardRange.week,
-                  label: Text('Semana'),
+                  label: Text(context.loc.rangeLabel(DashboardRangeLabel.week)),
                 ),
-                ButtonSegment(value: DashboardRange.month, label: Text('Mes')),
+                ButtonSegment(
+                  value: DashboardRange.month,
+                  label: Text(
+                    context.loc.rangeLabel(DashboardRangeLabel.month),
+                  ),
+                ),
               ],
               selected: {_selectedRange},
               onSelectionChanged: (value) {
@@ -95,18 +115,21 @@ class DashboardPageState extends State<DashboardPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Resumen por $_rangeLabel',
+                      context.t(
+                        'dashboard_summary',
+                        params: {'range': _rangeLabel},
+                      ),
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                     const SizedBox(height: 8),
                     _SummaryRow(
-                      label: 'Ingresos',
+                      label: context.t('dashboard_incomes'),
                       amount: summary?.totalIncomes ?? 0,
                       color: Colors.green,
                       symbol: symbol,
                     ),
                     _SummaryRow(
-                      label: 'Gastos',
+                      label: context.t('dashboard_expenses'),
                       amount: summary?.totalExpenses ?? 0,
                       color: Colors.red,
                       symbol: symbol,
@@ -118,29 +141,38 @@ class DashboardPageState extends State<DashboardPage> {
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text('Neto actual'),
+                            Text(context.t('dashboard_net_current')),
                             Text(
                               '$symbol ${net.toStringAsFixed(2)}',
                               style: Theme.of(context).textTheme.titleLarge,
                             ),
                           ],
                         ),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Text(
-                              diff == 0
-                                  ? 'Sin cambios vs. periodo previo'
-                                  : '$_comparisonPrefix $symbol ${diff.abs().toStringAsFixed(2)}',
-                              style: TextStyle(color: trendColor),
-                            ),
-                            Text(
-                              diff == 0
-                                  ? ''
-                                  : '$comparisonText el periodo anterior',
-                              style: Theme.of(context).textTheme.bodySmall,
-                            ),
-                          ],
+                        Flexible(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(
+                                textAlign: TextAlign.end,
+                                diff == 0
+                                    ? context.t('dashboard_no_change')
+                                    : context.t(
+                                        'dashboard_comparison',
+                                        params: {
+                                          'prefix': _comparisonPrefix,
+                                          'amount':
+                                              '$symbol ${diff.abs().toStringAsFixed(2)}',
+                                        },
+                                      ),
+                                style: TextStyle(color: trendColor),
+                              ),
+                              if (diff != 0)
+                                Text(
+                                  comparisonText,
+                                  style: Theme.of(context).textTheme.bodySmall,
+                                ),
+                            ],
+                          ),
                         ),
                       ],
                     ),
@@ -159,17 +191,19 @@ class DashboardPageState extends State<DashboardPage> {
   String get _rangeLabel {
     switch (_selectedRange) {
       case DashboardRange.day:
-        return 'día';
+        return context.loc.rangeLabel(DashboardRangeLabel.day);
       case DashboardRange.week:
-        return 'semana';
+        return context.loc.rangeLabel(DashboardRangeLabel.week);
       case DashboardRange.month:
-        return 'mes';
+        return context.loc.rangeLabel(DashboardRangeLabel.month);
     }
   }
 
   String get _comparisonPrefix {
     final diff = (_summary?.net ?? 0) - (_summary?.netPrevious ?? 0);
-    return diff >= 0 ? 'Arriba' : 'Abajo';
+    return diff >= 0
+        ? context.t('dashboard_prefix_up')
+        : context.t('dashboard_prefix_down');
   }
 }
 
@@ -224,13 +258,13 @@ class _DenominationBalanceCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Billetes por denominación',
+              context.t('dashboard_denominations_title'),
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 8),
             if (balances.isEmpty)
               Text(
-                'Aún no tienes denominaciones registradas con saldo.',
+                context.t('dashboard_denominations_empty'),
                 style: Theme.of(context).textTheme.bodyMedium,
               )
             else
@@ -260,7 +294,7 @@ class _DenominationBalanceCard extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('Total'),
+                      Text(context.t('dashboard_total_label')),
                       Text(
                         '${balances.fold<int>(0, (sum, item) => sum + item.quantity)} unidades',
                       ),

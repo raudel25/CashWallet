@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../data/denomination_repository.dart';
+import '../../l10n/app_localizations.dart';
 import '../../models/currency.dart';
 import '../../models/denomination.dart';
 
@@ -46,7 +47,7 @@ class DenominationsPageState extends State<DenominationsPage> {
     if (exists) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Esta denominación ya está registrada.')),
+        SnackBar(content: Text(context.t('denominations_exists'))),
       );
       return;
     }
@@ -67,7 +68,14 @@ class DenominationsPageState extends State<DenominationsPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'No puedes eliminar ${widget.currency.symbol}${denomination.value.toStringAsFixed(2)} porque aún tienes $available unidades.',
+            context.t(
+              'denominations_remove_error',
+              params: {
+                'value':
+                    '${widget.currency.symbol}${denomination.value.toStringAsFixed(2)}',
+                'count': '$available',
+              },
+            ),
           ),
         ),
       );
@@ -89,7 +97,7 @@ class DenominationsPageState extends State<DenominationsPage> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Nueva denominación'),
+          title: Text(context.t('denominations_dialog_title')),
           content: Form(
             key: formKey,
             child: TextFormField(
@@ -99,17 +107,17 @@ class DenominationsPageState extends State<DenominationsPage> {
                 decimal: true,
               ),
               decoration: InputDecoration(
-                labelText: 'Monto',
+                labelText: context.t('denominations_amount_label'),
                 prefixText: '${widget.currency.symbol} ',
               ),
               validator: (value) {
                 if (value == null || value.trim().isEmpty) {
-                  return 'Ingresa un monto válido';
+                  return context.t('denominations_amount_invalid');
                 }
                 final normalized = value.replaceAll(',', '.');
                 final parsed = double.tryParse(normalized);
                 if (parsed == null || parsed <= 0) {
-                  return 'El monto debe ser mayor que cero';
+                  return context.t('denominations_amount_gt_zero');
                 }
                 return null;
               },
@@ -119,12 +127,12 @@ class DenominationsPageState extends State<DenominationsPage> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancelar'),
+              child: Text(context.t('common_cancel')),
             ),
             FilledButton.icon(
               onPressed: () => _handleAddValue(controller, formKey),
               icon: const Icon(Icons.save),
-              label: const Text('Guardar'),
+              label: Text(context.t('common_save')),
             ),
           ],
         );
@@ -152,7 +160,10 @@ class DenominationsPageState extends State<DenominationsPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Agrega cada una de las denominaciones de efectivo (${widget.currency.code}) que tienes guardadas.',
+            context.t(
+              'denominations_intro',
+              params: {'currency': widget.currency.code},
+            ),
             style: Theme.of(context).textTheme.bodyLarge,
           ),
           const SizedBox(height: 16),
@@ -203,7 +214,7 @@ class _DenominationTile extends StatelessWidget {
     return Card(
       child: ListTile(
         title: Text('$symbol ${_formatAmount(denomination.value)}'),
-        subtitle: const Text('Denominación guardada'),
+        subtitle: Text(context.t('denominations_saved_label')),
         trailing: IconButton(
           icon: const Icon(Icons.delete_outline),
           onPressed: onDelete,
@@ -225,13 +236,13 @@ class _EmptyState extends StatelessWidget {
           Icon(Icons.savings_outlined, size: 64, color: Colors.grey.shade500),
           const SizedBox(height: 12),
           Text(
-            'Todavía no has añadido denominaciones.',
+            context.t('denominations_empty_title'),
             style: Theme.of(context).textTheme.titleMedium,
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 8),
           Text(
-            'Utiliza el botón “Añadir” para empezar.',
+            context.t('denominations_empty_subtitle'),
             style: Theme.of(
               context,
             ).textTheme.bodyMedium?.copyWith(color: Colors.grey.shade600),

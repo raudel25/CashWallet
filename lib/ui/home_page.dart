@@ -4,10 +4,12 @@ import 'package:flutter/services.dart';
 import '../controllers/dashboard_controller.dart';
 import '../data/cash_entry_repository.dart';
 import '../data/denomination_repository.dart';
+import '../l10n/app_localizations.dart';
 import '../models/cash_entry.dart';
 import '../models/currency.dart';
 import '../models/denomination.dart';
 import '../models/denomination_count.dart';
+import '../services/language_service.dart';
 import '../services/currency_service.dart';
 import 'pages/dashboard_page.dart';
 import 'pages/denominations_screen.dart';
@@ -15,7 +17,9 @@ import 'pages/history_page.dart';
 import 'pages/settings_page.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  const HomePage({super.key, required this.onLanguageChanged});
+
+  final Future<void> Function(Locale) onLanguageChanged;
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -30,37 +34,17 @@ class _HomePageState extends State<HomePage> {
   final _expenseRepository = const CashEntryRepository('cash_wallet_expenses');
   final _denominationRepository = const DenominationRepository();
   final CurrencyService _currencyService = CurrencyService();
+  final LanguageService _languageService = LanguageService();
 
   Currency? _currentCurrency;
   bool _isInitializing = true;
 
-  late final List<_Destination> _destinations;
+  late List<_Destination> _destinations;
   int _currentIndex = 0;
 
   @override
   void initState() {
     super.initState();
-
-    _destinations = const [
-      _Destination(
-        label: 'Inicio',
-        title: 'Inicio',
-        icon: Icons.home_outlined,
-        selectedIcon: Icons.home,
-      ),
-      _Destination(
-        label: 'Historial',
-        title: 'Historial',
-        icon: Icons.history_outlined,
-        selectedIcon: Icons.history,
-      ),
-      _Destination(
-        label: 'Configuración',
-        title: 'Configuración',
-        icon: Icons.settings_outlined,
-        selectedIcon: Icons.settings,
-      ),
-    ];
 
     _initializeApp();
   }
@@ -97,6 +81,7 @@ class _HomePageState extends State<HomePage> {
     }
 
     final pages = _buildPages();
+    _destinations = _buildDestinations(context);
     final destination = _destinations[_currentIndex];
 
     return Scaffold(
@@ -124,7 +109,7 @@ class _HomePageState extends State<HomePage> {
       return FloatingActionButton.extended(
         onPressed: _openQuickAddSheet,
         icon: const Icon(Icons.add),
-        label: const Text('Registrar movimiento'),
+        label: Text(context.t('home_register_movement')),
       );
     }
 
@@ -148,7 +133,35 @@ class _HomePageState extends State<HomePage> {
       SettingsPage(
         currency: currency,
         onSelectCurrency: _openCurrencySelector,
+        onSelectLanguage: _openLanguageSelector,
         onOpenDenominations: _openDenominationsScreen,
+        currentLanguageLabel: context.loc.languageName(
+          Localizations.localeOf(context).languageCode,
+        ),
+      ),
+    ];
+  }
+
+  List<_Destination> _buildDestinations(BuildContext context) {
+    final loc = context.loc;
+    return [
+      _Destination(
+        label: loc.translate('tab_home'),
+        title: loc.translate('tab_home'),
+        icon: Icons.home_outlined,
+        selectedIcon: Icons.home,
+      ),
+      _Destination(
+        label: loc.translate('tab_history'),
+        title: loc.translate('tab_history'),
+        icon: Icons.history_outlined,
+        selectedIcon: Icons.history,
+      ),
+      _Destination(
+        label: loc.translate('tab_settings'),
+        title: loc.translate('tab_settings'),
+        icon: Icons.settings_outlined,
+        selectedIcon: Icons.settings,
       ),
     ];
   }
@@ -163,7 +176,7 @@ class _HomePageState extends State<HomePage> {
             children: [
               ListTile(
                 leading: const Icon(Icons.trending_up, color: Colors.green),
-                title: const Text('Nuevo ingreso'),
+                title: Text(context.t('home_new_income')),
                 onTap: () {
                   Navigator.of(context).pop();
                   _openIncomeForm();
@@ -171,7 +184,7 @@ class _HomePageState extends State<HomePage> {
               ),
               ListTile(
                 leading: const Icon(Icons.trending_down, color: Colors.red),
-                title: const Text('Nuevo gasto'),
+                title: Text(context.t('home_new_expense')),
                 onTap: () {
                   Navigator.of(context).pop();
                   _openExpenseForm();
@@ -182,6 +195,43 @@ class _HomePageState extends State<HomePage> {
         );
       },
     );
+  }
+
+  Future<void> _openLanguageSelector() async {
+    final currentLocale = Localizations.localeOf(context);
+    final supported = _languageService.supportedLocales;
+    final selected = await showModalBottomSheet<Locale>(
+      context: context,
+      builder: (context) {
+        return SafeArea(
+          child: ListView(
+            shrinkWrap: true,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text(
+                  context.t('home_select_language'),
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+              ),
+              ...supported.map(
+                (locale) => RadioListTile<String>(
+                  value: locale.languageCode,
+                  groupValue: currentLocale.languageCode,
+                  title: Text(context.loc.languageName(locale.languageCode)),
+                  onChanged: (_) => Navigator.of(context).pop(locale),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+
+    if (selected == null || selected.languageCode == currentLocale.languageCode) {
+      return;
+    }
+    await widget.onLanguageChanged(selected);
   }
 
   Future<void> _openCurrencySelector() async {
@@ -198,7 +248,7 @@ class _HomePageState extends State<HomePage> {
               Padding(
                 padding: const EdgeInsets.all(16),
                 child: Text(
-                  'Selecciona la moneda a usar',
+                  context.t('home_select_currency'),
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
               ),
@@ -233,9 +283,7 @@ class _HomePageState extends State<HomePage> {
     if (denominations.isEmpty) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Primero configura tus denominaciones en ajustes.'),
-        ),
+        SnackBar(content: Text(context.t('home_configure_denominations'))),
       );
       return;
     }
@@ -251,7 +299,7 @@ class _HomePageState extends State<HomePage> {
     if (entry.amount <= 0) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('El ingreso debe ser mayor que cero.')),
+        SnackBar(content: Text(context.t('home_income_positive'))),
       );
       return;
     }
@@ -262,9 +310,9 @@ class _HomePageState extends State<HomePage> {
     await _dashboardController.refresh();
 
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Ingreso registrado correctamente.')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(context.t('home_income_saved'))));
   }
 
   Future<void> _openExpenseForm() async {
@@ -274,9 +322,7 @@ class _HomePageState extends State<HomePage> {
     if (denominations.isEmpty) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Primero configura tus denominaciones en ajustes.'),
-        ),
+        SnackBar(content: Text(context.t('home_configure_denominations'))),
       );
       return;
     }
@@ -286,11 +332,7 @@ class _HomePageState extends State<HomePage> {
     if (totalPieces <= 0) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'No tienes efectivo disponible para registrar un gasto.',
-          ),
-        ),
+        SnackBar(content: Text(context.t('home_no_cash_for_expense'))),
       );
       return;
     }
@@ -309,7 +351,7 @@ class _HomePageState extends State<HomePage> {
     if (entry.amount <= 0) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('El gasto debe ser mayor que cero.')),
+        SnackBar(content: Text(context.t('home_expense_positive'))),
       );
       return;
     }
@@ -320,9 +362,9 @@ class _HomePageState extends State<HomePage> {
     await _dashboardController.refresh();
 
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Gasto registrado correctamente.')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(context.t('home_expense_saved'))));
   }
 
   Future<_IncomeFormResult?> _showIncomeFormSheet(
@@ -488,9 +530,7 @@ class _IncomeFormSheetState extends State<_IncomeFormSheet> {
   void _submit() {
     if (_total <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Agrega al menos una unidad para guardar el ingreso.'),
-        ),
+        SnackBar(content: Text(context.t('home_need_income_units'))),
       );
       return;
     }
@@ -516,10 +556,13 @@ class _IncomeFormSheetState extends State<_IncomeFormSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Nuevo ingreso', style: Theme.of(context).textTheme.titleLarge),
+          Text(
+            context.t('home_new_income'),
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
           const SizedBox(height: 12),
           Text(
-            'Indica cuántas unidades de cada denominación vas a guardar.',
+            context.t('home_income_instruction'),
             style: Theme.of(context).textTheme.bodyMedium,
           ),
           const SizedBox(height: 16),
@@ -536,7 +579,7 @@ class _IncomeFormSheetState extends State<_IncomeFormSheet> {
                   decoration: InputDecoration(
                     labelText:
                         '${widget.currencySymbol} ${denomination.value.toStringAsFixed(2)}',
-                    suffixText: 'unidades',
+                    suffixText: context.t('common_units'),
                   ),
                   onChanged: (_) => _updateTotal(),
                 );
@@ -548,16 +591,16 @@ class _IncomeFormSheetState extends State<_IncomeFormSheet> {
           const SizedBox(height: 16),
           TextFormField(
             controller: _descriptionController,
-            decoration: const InputDecoration(
-              labelText: 'Descripción',
-              hintText: 'Ej. Ahorros, venta, etc.',
+            decoration: InputDecoration(
+              labelText: context.t('home_description_label'),
+              hintText: context.t('home_description_income_hint'),
             ),
           ),
           const SizedBox(height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('Total calculado:'),
+              Text(context.t('home_total_calculated')),
               Text(
                 '${widget.currencySymbol} ${_total.toStringAsFixed(2)}',
                 style: Theme.of(
@@ -572,7 +615,7 @@ class _IncomeFormSheetState extends State<_IncomeFormSheet> {
             child: FilledButton.icon(
               onPressed: _submit,
               icon: const Icon(Icons.save),
-              label: const Text('Guardar ingreso'),
+              label: Text(context.t('home_save_income')),
             ),
           ),
         ],
@@ -647,9 +690,7 @@ class _ExpenseFormSheetState extends State<_ExpenseFormSheet> {
   void _submit() {
     if (_total <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Indica qué denominaciones estás gastando.'),
-        ),
+        SnackBar(content: Text(context.t('home_need_expense_units'))),
       );
       return;
     }
@@ -659,8 +700,14 @@ class _ExpenseFormSheetState extends State<_ExpenseFormSheet> {
     for (final item in breakdown) {
       final available = widget.availableStock[item.denomination] ?? 0;
       if (item.quantity > available) {
-        newErrors[item.denomination] =
-            'Solo tienes $available unidades de ${widget.currencySymbol} ${item.denomination.toStringAsFixed(2)}.';
+        newErrors[item.denomination] = context.t(
+          'home_only_have_units',
+          params: {
+            'count': '$available',
+            'value':
+                '${widget.currencySymbol} ${item.denomination.toStringAsFixed(2)}',
+          },
+        );
       }
     }
     if (newErrors.isNotEmpty) {
@@ -692,10 +739,13 @@ class _ExpenseFormSheetState extends State<_ExpenseFormSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Nuevo gasto', style: Theme.of(context).textTheme.titleLarge),
+          Text(
+            context.t('home_new_expense'),
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
           const SizedBox(height: 12),
           Text(
-            'Indica cuántas unidades de cada denominación vas a usar.',
+            context.t('home_expense_instruction'),
             style: Theme.of(context).textTheme.bodyMedium,
           ),
           const SizedBox(height: 16),
@@ -716,7 +766,7 @@ class _ExpenseFormSheetState extends State<_ExpenseFormSheet> {
                       decoration: InputDecoration(
                         labelText:
                             '${widget.currencySymbol} ${denomination.value.toStringAsFixed(2)}',
-                        suffixText: 'unidades',
+                        suffixText: context.t('common_units'),
                       ),
                       onChanged: (_) {
                         _updateTotal();
@@ -745,16 +795,16 @@ class _ExpenseFormSheetState extends State<_ExpenseFormSheet> {
           const SizedBox(height: 16),
           TextFormField(
             controller: _descriptionController,
-            decoration: const InputDecoration(
-              labelText: 'Descripción',
-              hintText: 'Ej. Compra, pago de servicio, etc.',
+            decoration: InputDecoration(
+              labelText: context.t('home_description_label'),
+              hintText: context.t('home_description_expense_hint'),
             ),
           ),
           const SizedBox(height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('Total calculado:'),
+              Text(context.t('home_total_calculated')),
               Text(
                 '${widget.currencySymbol} ${_total.toStringAsFixed(2)}',
                 style: Theme.of(
@@ -769,7 +819,7 @@ class _ExpenseFormSheetState extends State<_ExpenseFormSheet> {
             child: FilledButton.icon(
               onPressed: _submit,
               icon: const Icon(Icons.save),
-              label: const Text('Guardar gasto'),
+              label: Text(context.t('home_save_expense')),
             ),
           ),
         ],

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../models/currency.dart';
 import 'denominations_page.dart';
 
@@ -24,7 +25,14 @@ class _DenominationsScreenState extends State<DenominationsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Denominaciones (${widget.currency.code})')),
+      appBar: AppBar(
+        title: Text(
+          context.t(
+            'denominations_title',
+            params: {'currency': widget.currency.code},
+          ),
+        ),
+      ),
       body: DenominationsPage(
         key: _pageKey,
         loadStock: widget.loadStock,
@@ -33,7 +41,7 @@ class _DenominationsScreenState extends State<DenominationsScreen> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _pageKey.currentState?.openAddDialog(),
         icon: const Icon(Icons.add),
-        label: const Text('Añadir'),
+        label: Text(context.t('denominations_add')),
       ),
     );
   }

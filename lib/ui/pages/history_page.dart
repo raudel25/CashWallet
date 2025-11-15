@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../data/cash_entry_repository.dart';
+import '../../l10n/app_localizations.dart';
 import '../../models/cash_entry.dart';
 import '../../models/currency.dart';
 import '../../models/denomination_count.dart';
@@ -76,11 +77,11 @@ class HistoryPageState extends State<HistoryPage> {
         : Colors.red;
     final prefix = _filter == HistoryFilter.incomes ? '+' : '-';
     final emptyTitle = _filter == HistoryFilter.incomes
-        ? 'No tienes ingresos registrados'
-        : 'No tienes gastos registrados';
+        ? context.t('history_empty_incomes_title')
+        : context.t('history_empty_expenses_title');
     final emptyMessage = _filter == HistoryFilter.incomes
-        ? 'Registra tus ingresos desde la pantalla de inicio.'
-        : 'Registra tus gastos desde la pantalla de inicio.';
+        ? context.t('history_empty_incomes_desc')
+        : context.t('history_empty_expenses_desc');
 
     return Padding(
       padding: const EdgeInsets.all(16),
@@ -88,21 +89,21 @@ class HistoryPageState extends State<HistoryPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Consulta cada movimiento registrado.',
+            context.t('history_title'),
             style: Theme.of(context).textTheme.bodyLarge,
           ),
           const SizedBox(height: 16),
           SegmentedButton<HistoryFilter>(
-            segments: const [
+            segments: [
               ButtonSegment(
                 value: HistoryFilter.incomes,
-                label: Text('Ingresos'),
-                icon: Icon(Icons.trending_up),
+                label: Text(context.t('history_filter_incomes')),
+                icon: const Icon(Icons.trending_up),
               ),
               ButtonSegment(
                 value: HistoryFilter.expenses,
-                label: Text('Gastos'),
-                icon: Icon(Icons.trending_down),
+                label: Text(context.t('history_filter_expenses')),
+                icon: const Icon(Icons.trending_down),
               ),
             ],
             selected: {_filter},
@@ -184,7 +185,7 @@ class _HistoryTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final description = entry.description.isEmpty
-        ? 'Sin descripción'
+        ? context.t('history_no_description')
         : entry.description;
 
     return Card(
@@ -205,7 +206,10 @@ class _HistoryTile extends StatelessWidget {
             if (entry.breakdown.isNotEmpty) ...[
               const SizedBox(height: 8),
               Text(
-                'Desglose: ${_formatBreakdown(entry.breakdown)}',
+                context.t(
+                  'history_breakdown',
+                  params: {'breakdown': _formatBreakdown(entry.breakdown)},
+                ),
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             ],
