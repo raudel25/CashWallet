@@ -104,6 +104,8 @@ class AppLocalizations {
       'denominations_amount_gt_zero': 'Amount must be greater than zero',
       'common_cancel': 'Cancel',
       'common_save': 'Save',
+      'common_continue': 'Continue',
+      'common_delete': 'Delete',
       'denominations_exists': 'This denomination is already registered.',
       'denominations_remove_error':
           'You cannot delete {value} because you still have {count} units.',
@@ -178,6 +180,14 @@ class AppLocalizations {
       'security_unlock': 'Unlock',
       'security_invalid_pin': 'Invalid PIN',
       'security_invalid_password': 'Invalid password',
+      'security_confirm_remove_password_title': 'Warning',
+      'security_confirm_remove_password_msg':
+          'Setting a PIN will remove the existing password. Do you want to continue?',
+      'security_confirm_remove_pin_title': 'Warning',
+      'security_confirm_remove_pin_msg':
+          'Setting a password will remove the existing PIN. Do you want to continue?',
+      'security_biometric_requires_credential':
+          'Enable a PIN or password before enabling biometrics.',
     },
     'es': {
       // Security (Spanish translations)
@@ -208,6 +218,14 @@ class AppLocalizations {
       'security_unlock': 'Desbloquear',
       'security_invalid_pin': 'PIN inválido',
       'security_invalid_password': 'Contraseña inválida',
+      'security_confirm_remove_password_title': 'Advertencia',
+      'security_confirm_remove_password_msg':
+          'Al establecer un PIN se eliminará la contraseña existente. ¿Deseas continuar?',
+      'security_confirm_remove_pin_title': 'Advertencia',
+      'security_confirm_remove_pin_msg':
+          'Al establecer una contraseña se eliminará el PIN existente. ¿Deseas continuar?',
+      'security_biometric_requires_credential':
+          'Activa un PIN o contraseña antes de habilitar la biometría.',
       'app_title': 'Cash Wallet',
       'tab_home': 'Inicio',
       'tab_history': 'Historial',
@@ -263,6 +281,8 @@ class AppLocalizations {
       'denominations_amount_gt_zero': 'El monto debe ser mayor que cero',
       'common_cancel': 'Cancelar',
       'common_save': 'Guardar',
+      'common_continue': 'Continuar',
+      'common_delete': 'Eliminar',
       'denominations_exists': 'Esta denominación ya está registrada.',
       'denominations_remove_error':
           'No puedes eliminar {value} porque aún tienes {count} unidades.',

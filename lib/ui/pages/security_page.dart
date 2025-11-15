@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
 import '../../services/security_service.dart';
+import '../widgets/confirm_dialog.dart';
 
 class SecurityPage extends StatefulWidget {
   const SecurityPage({super.key, required this.securityService});
@@ -38,6 +39,18 @@ class _SecurityPageState extends State<SecurityPage> {
   }
 
   Future<void> _setPin() async {
+    // If a password is set, warn that it will be removed
+    final hasPwd = await widget.securityService.hasPassword();
+    if (hasPwd) {
+      final confirmed = await showConfirmDialog(
+        context,
+        title: context.t('security_confirm_remove_password_title'),
+        content: context.t('security_confirm_remove_password_msg'),
+        confirmLabel: context.t('common_save'),
+        cancelLabel: context.t('common_cancel'),
+      );
+      if (!confirmed) return;
+    }
     final formKey = GlobalKey<FormState>();
     final ctrl1 = TextEditingController();
     final ctrl2 = TextEditingController();
@@ -109,6 +122,9 @@ class _SecurityPageState extends State<SecurityPage> {
     );
     if (res == true) {
       await widget.securityService.setPin(ctrl1.text.trim());
+      if (hasPwd) {
+        await widget.securityService.removePassword();
+      }
       await _loadState();
     }
     node1.dispose();
@@ -121,6 +137,18 @@ class _SecurityPageState extends State<SecurityPage> {
   }
 
   Future<void> _setPassword() async {
+    // If a PIN is set, warn that it will be removed
+    final hasPin = await widget.securityService.hasPin();
+    if (hasPin) {
+      final confirmed = await showConfirmDialog(
+        context,
+        title: context.t('security_confirm_remove_pin_title'),
+        content: context.t('security_confirm_remove_pin_msg'),
+        confirmLabel: context.t('common_save'),
+        cancelLabel: context.t('common_cancel'),
+      );
+      if (!confirmed) return;
+    }
     final formKey = GlobalKey<FormState>();
     final ctrl1 = TextEditingController();
     final ctrl2 = TextEditingController();
@@ -182,7 +210,7 @@ class _SecurityPageState extends State<SecurityPage> {
                 if (formKey.currentState?.validate() ?? false)
                   Navigator.of(context).pop(true);
               },
-              child: Text(context.t('common_save')),
+              child: Text(context.t('common_continue')),
             ),
           ],
         );
@@ -190,6 +218,9 @@ class _SecurityPageState extends State<SecurityPage> {
     );
     if (res == true) {
       await widget.securityService.setPassword(ctrl1.text.trim());
+      if (hasPin) {
+        await widget.securityService.removePin();
+      }
       await _loadState();
     }
   }
@@ -201,6 +232,17 @@ class _SecurityPageState extends State<SecurityPage> {
 
   Future<void> _toggleBiometric(bool value) async {
     if (value) {
+      final hasPin = await widget.securityService.hasPin();
+      final hasPwd = await widget.securityService.hasPassword();
+      if (!hasPin && !hasPwd) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(context.t('security_biometric_requires_credential')),
+          ),
+        );
+        return;
+      }
       final available = await widget.securityService.isBiometricAvailable();
       if (!available) {
         if (!mounted) return;
