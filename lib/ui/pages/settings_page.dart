@@ -31,11 +31,6 @@ class SettingsPage extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       children: [
         Text(
-          context.t('settings_title'),
-          style: Theme.of(context).textTheme.headlineSmall,
-        ),
-        const SizedBox(height: 12),
-        Text(
           context.t('settings_description'),
           style: Theme.of(context).textTheme.bodyLarge,
         ),
