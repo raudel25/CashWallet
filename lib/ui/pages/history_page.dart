@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../data/cash_entry_repository.dart';
 import '../../models/cash_entry.dart';
+import '../../models/currency.dart';
 import '../../models/denomination_count.dart';
 
 enum HistoryFilter { incomes, expenses }
@@ -11,10 +12,12 @@ class HistoryPage extends StatefulWidget {
     super.key,
     required this.incomeRepository,
     required this.expenseRepository,
+    required this.currency,
   });
 
   final CashEntryRepository incomeRepository;
   final CashEntryRepository expenseRepository;
+  final Currency currency;
 
   @override
   HistoryPageState createState() => HistoryPageState();
@@ -25,16 +28,28 @@ class HistoryPageState extends State<HistoryPage> {
   List<CashEntry> _incomes = [];
   List<CashEntry> _expenses = [];
   bool _isLoading = true;
+  late String _currencyCode;
 
   @override
   void initState() {
     super.initState();
-    refresh();
+    _currencyCode = widget.currency.code;
+    refresh(_currencyCode);
   }
 
-  Future<void> refresh() async {
-    final incomes = await widget.incomeRepository.load();
-    final expenses = await widget.expenseRepository.load();
+  @override
+  void didUpdateWidget(covariant HistoryPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.currency.code != widget.currency.code) {
+      _currencyCode = widget.currency.code;
+      refresh(_currencyCode);
+    }
+  }
+
+  Future<void> refresh([String? currencyCode]) async {
+    final code = currencyCode ?? _currencyCode;
+    final incomes = await widget.incomeRepository.load(code);
+    final expenses = await widget.expenseRepository.load(code);
     if (!mounted) return;
     setState(() {
       _incomes = incomes;
@@ -47,10 +62,10 @@ class HistoryPageState extends State<HistoryPage> {
     final repository = entry.type == CashEntryType.income
         ? widget.incomeRepository
         : widget.expenseRepository;
-    final entries = await repository.load();
+    final entries = await repository.load(_currencyCode);
     final updated = entries.where((item) => item.id != entry.id).toList();
-    await repository.save(updated);
-    await refresh();
+    await repository.save(_currencyCode, updated);
+    await refresh(_currencyCode);
   }
 
   @override
@@ -112,6 +127,7 @@ class HistoryPageState extends State<HistoryPage> {
                         highlightColor: highlightColor,
                         amountPrefix: prefix,
                         onDelete: () => _removeEntry(entry),
+                        currencySymbol: widget.currency.symbol,
                       );
                     },
                     separatorBuilder: (_, __) => const SizedBox(height: 8),
@@ -130,12 +146,14 @@ class _HistoryTile extends StatelessWidget {
     required this.highlightColor,
     required this.amountPrefix,
     required this.onDelete,
+    required this.currencySymbol,
   });
 
   final CashEntry entry;
   final Color highlightColor;
   final String amountPrefix;
   final VoidCallback onDelete;
+  final String currencySymbol;
 
   String _formatAmount(double value) {
     if (value == value.roundToDouble()) {
@@ -158,7 +176,7 @@ class _HistoryTile extends StatelessWidget {
     return breakdown
         .map(
           (item) =>
-              '${item.quantity} x ${item.denomination.toStringAsFixed(item.denomination == item.denomination.roundToDouble() ? 0 : 2)}',
+              '${item.quantity} x $currencySymbol ${item.denomination.toStringAsFixed(item.denomination == item.denomination.roundToDouble() ? 0 : 2)}',
         )
         .join(', ');
   }
@@ -172,7 +190,7 @@ class _HistoryTile extends StatelessWidget {
     return Card(
       child: ListTile(
         title: Text(
-          '$amountPrefix \$ ${_formatAmount(entry.amount)}',
+          '$amountPrefix $currencySymbol ${_formatAmount(entry.amount)}',
           style: TextStyle(color: highlightColor, fontWeight: FontWeight.bold),
         ),
         subtitle: Column(

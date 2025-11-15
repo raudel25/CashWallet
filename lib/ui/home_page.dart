@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../controllers/dashboard_controller.dart';
 import '../data/cash_entry_repository.dart';
 import '../data/denomination_repository.dart';
 import '../models/cash_entry.dart';
+import '../models/currency.dart';
 import '../models/denomination.dart';
 import '../models/denomination_count.dart';
-import '../controllers/dashboard_controller.dart';
+import '../services/currency_service.dart';
 import 'pages/dashboard_page.dart';
-import 'pages/denominations_page.dart';
+import 'pages/denominations_screen.dart';
 import 'pages/history_page.dart';
+import 'pages/settings_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -21,40 +24,22 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   final _dashboardKey = GlobalKey<DashboardPageState>();
   final _historyKey = GlobalKey<HistoryPageState>();
-  final _settingsKey = GlobalKey<DenominationsPageState>();
   late final DashboardController _dashboardController;
 
   final _incomeRepository = const CashEntryRepository('cash_wallet_incomes');
   final _expenseRepository = const CashEntryRepository('cash_wallet_expenses');
   final _denominationRepository = const DenominationRepository();
+  final CurrencyService _currencyService = CurrencyService();
+
+  Currency? _currentCurrency;
+  bool _isInitializing = true;
 
   late final List<_Destination> _destinations;
-  late final List<Widget> _pages;
   int _currentIndex = 0;
 
   @override
   void initState() {
     super.initState();
-
-    _dashboardController = DashboardController(
-      incomeRepository: _incomeRepository,
-      expenseRepository: _expenseRepository,
-      onSummaryUpdated: (summary) {
-        _dashboardKey.currentState?.updateSummary(summary);
-      },
-    );
-
-    _dashboardController.init();
-
-    _pages = [
-      DashboardPage(key: _dashboardKey, controller: _dashboardController),
-      HistoryPage(
-        key: _historyKey,
-        incomeRepository: _incomeRepository,
-        expenseRepository: _expenseRepository,
-      ),
-      DenominationsPage(key: _settingsKey, loadStock: _loadDenominationStock),
-    ];
 
     _destinations = const [
       _Destination(
@@ -76,6 +61,27 @@ class _HomePageState extends State<HomePage> {
         selectedIcon: Icons.settings,
       ),
     ];
+
+    _initializeApp();
+  }
+
+  Future<void> _initializeApp() async {
+    final currency = await _currencyService.loadSelectedCurrency();
+    _dashboardController = DashboardController(
+      incomeRepository: _incomeRepository,
+      expenseRepository: _expenseRepository,
+      currencyCode: currency.code,
+      onSummaryUpdated: (summary) {
+        _dashboardKey.currentState?.updateSummary(summary);
+      },
+    );
+
+    await _dashboardController.init();
+    if (!mounted) return;
+    setState(() {
+      _currentCurrency = currency;
+      _isInitializing = false;
+    });
   }
 
   @override
@@ -86,11 +92,16 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isInitializing || _currentCurrency == null) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    final pages = _buildPages();
     final destination = _destinations[_currentIndex];
 
     return Scaffold(
       appBar: AppBar(title: Text(destination.title)),
-      body: IndexedStack(index: _currentIndex, children: _pages),
+      body: IndexedStack(index: _currentIndex, children: pages),
       floatingActionButton: _buildFab(),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _currentIndex,
@@ -117,15 +128,29 @@ class _HomePageState extends State<HomePage> {
       );
     }
 
-    if (_currentIndex == 2) {
-      return FloatingActionButton.extended(
-        onPressed: () => _settingsKey.currentState?.openAddDialog(),
-        icon: const Icon(Icons.add),
-        label: const Text('Añadir denominación'),
-      );
-    }
-
     return null;
+  }
+
+  List<Widget> _buildPages() {
+    final currency = _currentCurrency!;
+    return [
+      DashboardPage(
+        key: _dashboardKey,
+        controller: _dashboardController,
+        currency: currency,
+      ),
+      HistoryPage(
+        key: _historyKey,
+        incomeRepository: _incomeRepository,
+        expenseRepository: _expenseRepository,
+        currency: currency,
+      ),
+      SettingsPage(
+        currency: currency,
+        onSelectCurrency: _openCurrencySelector,
+        onOpenDenominations: _openDenominationsScreen,
+      ),
+    ];
   }
 
   Future<void> _openQuickAddSheet() async {
@@ -159,8 +184,52 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  Future<void> _openCurrencySelector() async {
+    final currency = _currentCurrency;
+    if (currency == null) return;
+    final currencies = _currencyService.availableCurrencies;
+    final selected = await showModalBottomSheet<Currency>(
+      context: context,
+      builder: (context) {
+        return SafeArea(
+          child: ListView(
+            shrinkWrap: true,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text(
+                  'Selecciona la moneda a usar',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+              ),
+              ...currencies.map(
+                (item) => RadioListTile<String>(
+                  value: item.code,
+                  groupValue: currency.code,
+                  title: Text(item.name),
+                  subtitle: Text('${item.symbol} • ${item.code}'),
+                  onChanged: (_) => Navigator.of(context).pop(item),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+
+    if (selected == null || selected.code == currency.code) return;
+    await _currencyService.saveSelectedCurrency(selected.code);
+    await _dashboardController.setCurrency(selected.code);
+    setState(() {
+      _currentCurrency = selected;
+    });
+    await _historyKey.currentState?.refresh(selected.code);
+  }
+
   Future<void> _openIncomeForm() async {
-    final denominations = await _denominationRepository.load();
+    final currency = _currentCurrency;
+    if (currency == null) return;
+    final denominations = await _denominationRepository.load(currency.code);
     if (denominations.isEmpty) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -171,12 +240,13 @@ class _HomePageState extends State<HomePage> {
       return;
     }
 
-    final result = await _showIncomeFormSheet(denominations);
+    final result = await _showIncomeFormSheet(denominations, currency.symbol);
     if (result == null) return;
 
     final entry = CashEntry.createIncome(
       breakdown: result.breakdown,
       description: result.description,
+      currencyCode: currency.code,
     );
     if (entry.amount <= 0) {
       if (!mounted) return;
@@ -186,9 +256,9 @@ class _HomePageState extends State<HomePage> {
       return;
     }
 
-    final currentEntries = await _incomeRepository.load();
-    await _incomeRepository.save([entry, ...currentEntries]);
-    await _historyKey.currentState?.refresh();
+    final currentEntries = await _incomeRepository.load(currency.code);
+    await _incomeRepository.save(currency.code, [entry, ...currentEntries]);
+    await _historyKey.currentState?.refresh(currency.code);
 
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -197,7 +267,9 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _openExpenseForm() async {
-    final denominations = await _denominationRepository.load();
+    final currency = _currentCurrency;
+    if (currency == null) return;
+    final denominations = await _denominationRepository.load(currency.code);
     if (denominations.isEmpty) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -221,12 +293,17 @@ class _HomePageState extends State<HomePage> {
       );
       return;
     }
-    final result = await _showExpenseFormSheet(denominations, stock);
+    final result = await _showExpenseFormSheet(
+      denominations,
+      stock,
+      currency.symbol,
+    );
     if (result == null) return;
 
     final entry = CashEntry.createExpense(
       breakdown: result.breakdown,
       description: result.description,
+      currencyCode: currency.code,
     );
     if (entry.amount <= 0) {
       if (!mounted) return;
@@ -236,9 +313,9 @@ class _HomePageState extends State<HomePage> {
       return;
     }
 
-    final currentEntries = await _expenseRepository.load();
-    await _expenseRepository.save([entry, ...currentEntries]);
-    await _historyKey.currentState?.refresh();
+    final currentEntries = await _expenseRepository.load(currency.code);
+    await _expenseRepository.save(currency.code, [entry, ...currentEntries]);
+    await _historyKey.currentState?.refresh(currency.code);
 
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -248,17 +325,22 @@ class _HomePageState extends State<HomePage> {
 
   Future<_IncomeFormResult?> _showIncomeFormSheet(
     List<Denomination> denominations,
+    String currencySymbol,
   ) {
     return showModalBottomSheet<_IncomeFormResult>(
       context: context,
       isScrollControlled: true,
-      builder: (context) => _IncomeFormSheet(denominations: denominations),
+      builder: (context) => _IncomeFormSheet(
+        denominations: denominations,
+        currencySymbol: currencySymbol,
+      ),
     );
   }
 
   Future<_ExpenseFormResult?> _showExpenseFormSheet(
     List<Denomination> denominations,
     Map<double, int> availableStock,
+    String currencySymbol,
   ) {
     return showModalBottomSheet<_ExpenseFormResult>(
       context: context,
@@ -266,13 +348,29 @@ class _HomePageState extends State<HomePage> {
       builder: (context) => _ExpenseFormSheet(
         denominations: denominations,
         availableStock: availableStock,
+        currencySymbol: currencySymbol,
+      ),
+    );
+  }
+
+  Future<void> _openDenominationsScreen() async {
+    final currency = _currentCurrency;
+    if (currency == null) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => DenominationsScreen(
+          loadStock: _loadDenominationStock,
+          currency: currency,
+        ),
       ),
     );
   }
 
   Future<Map<double, int>> _loadDenominationStock() async {
-    final incomes = await _incomeRepository.load();
-    final expenses = await _expenseRepository.load();
+    final currency = _currentCurrency;
+    if (currency == null) return {};
+    final incomes = await _incomeRepository.load(currency.code);
+    final expenses = await _expenseRepository.load(currency.code);
     final Map<double, int> stock = {};
 
     void accumulate(List<CashEntry> entries, int multiplier) {
@@ -326,9 +424,13 @@ class _ExpenseFormResult {
 }
 
 class _IncomeFormSheet extends StatefulWidget {
-  const _IncomeFormSheet({required this.denominations});
+  const _IncomeFormSheet({
+    required this.denominations,
+    required this.currencySymbol,
+  });
 
   final List<Denomination> denominations;
+  final String currencySymbol;
 
   @override
   State<_IncomeFormSheet> createState() => _IncomeFormSheetState();
@@ -385,7 +487,7 @@ class _IncomeFormSheetState extends State<_IncomeFormSheet> {
     if (_total <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Agrega al menos una pieza para guardar el ingreso.'),
+          content: Text('Agrega al menos una unidad para guardar el ingreso.'),
         ),
       );
       return;
@@ -430,7 +532,8 @@ class _IncomeFormSheetState extends State<_IncomeFormSheet> {
                   keyboardType: TextInputType.number,
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                   decoration: InputDecoration(
-                    labelText: '\$ ${denomination.value.toStringAsFixed(2)}',
+                    labelText:
+                        '${widget.currencySymbol} ${denomination.value.toStringAsFixed(2)}',
                     suffixText: 'unidades',
                   ),
                   onChanged: (_) => _updateTotal(),
@@ -454,7 +557,7 @@ class _IncomeFormSheetState extends State<_IncomeFormSheet> {
             children: [
               const Text('Total calculado:'),
               Text(
-                '\$ ${_total.toStringAsFixed(2)}',
+                '${widget.currencySymbol} ${_total.toStringAsFixed(2)}',
                 style: Theme.of(
                   context,
                 ).textTheme.titleMedium?.copyWith(color: Colors.green),
@@ -480,10 +583,12 @@ class _ExpenseFormSheet extends StatefulWidget {
   const _ExpenseFormSheet({
     required this.denominations,
     required this.availableStock,
+    required this.currencySymbol,
   });
 
   final List<Denomination> denominations;
   final Map<double, int> availableStock;
+  final String currencySymbol;
 
   @override
   State<_ExpenseFormSheet> createState() => _ExpenseFormSheetState();
@@ -553,7 +658,7 @@ class _ExpenseFormSheetState extends State<_ExpenseFormSheet> {
       final available = widget.availableStock[item.denomination] ?? 0;
       if (item.quantity > available) {
         newErrors[item.denomination] =
-            'Solo tienes $available unidades de \$${item.denomination.toStringAsFixed(2)}.';
+            'Solo tienes $available unidades de ${widget.currencySymbol} ${item.denomination.toStringAsFixed(2)}.';
       }
     }
     if (newErrors.isNotEmpty) {
@@ -608,7 +713,7 @@ class _ExpenseFormSheetState extends State<_ExpenseFormSheet> {
                       inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                       decoration: InputDecoration(
                         labelText:
-                            '\$ ${denomination.value.toStringAsFixed(2)}',
+                            '${widget.currencySymbol} ${denomination.value.toStringAsFixed(2)}',
                         suffixText: 'unidades',
                       ),
                       onChanged: (_) {
@@ -649,7 +754,7 @@ class _ExpenseFormSheetState extends State<_ExpenseFormSheet> {
             children: [
               const Text('Total calculado:'),
               Text(
-                '\$ ${_total.toStringAsFixed(2)}',
+                '${widget.currencySymbol} ${_total.toStringAsFixed(2)}',
                 style: Theme.of(
                   context,
                 ).textTheme.titleMedium?.copyWith(color: Colors.red),

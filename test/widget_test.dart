@@ -21,7 +21,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Inicio'), findsWidgets);
-    expect(find.text('Saldo total'), findsOneWidget);
+    expect(find.textContaining('Saldo total'), findsOneWidget);
     expect(find.text('Registrar movimiento'), findsOneWidget);
   });
 
@@ -40,11 +40,10 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Configuración'), findsWidgets);
     expect(
-      find.text(
-        'Agrega cada una de las denominaciones de efectivo que tienes guardadas.',
-      ),
+      find.text('Selecciona un apartado para personalizar tu experiencia.'),
       findsOneWidget,
     );
+    expect(find.text('Denominaciones'), findsOneWidget);
   });
 
   testWidgets('El botón flotante abre las opciones de registro', (
@@ -69,7 +68,15 @@ void main() {
     await tester.tap(find.text('Configuración'));
     await tester.pumpAndSettle();
 
-    final addButton = find.text('Añadir denominación');
+    final denominationsTile = find.text('Denominaciones');
+    expect(denominationsTile, findsOneWidget);
+
+    await tester.tap(denominationsTile);
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Denominaciones'), findsWidgets);
+
+    final addButton = find.text('Añadir');
     expect(addButton, findsOneWidget);
 
     await tester.tap(addButton);

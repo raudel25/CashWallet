@@ -11,6 +11,7 @@ class CashEntry {
     required this.amount,
     required this.description,
     required this.createdAt,
+    required this.currencyCode,
     this.breakdown = const [],
   });
 
@@ -19,11 +20,13 @@ class CashEntry {
   final double amount;
   final String description;
   final DateTime createdAt;
+  final String currencyCode;
   final List<DenominationCount> breakdown;
 
   factory CashEntry.createIncome({
     required List<DenominationCount> breakdown,
     required String description,
+    required String currencyCode,
   }) {
     final now = DateTime.now();
     final sanitized = breakdown.where((item) => item.quantity > 0).toList();
@@ -38,12 +41,14 @@ class CashEntry {
       description: description.trim(),
       breakdown: sanitized,
       createdAt: now,
+      currencyCode: currencyCode,
     );
   }
 
   factory CashEntry.createExpense({
     required List<DenominationCount> breakdown,
     required String description,
+    required String currencyCode,
   }) {
     final now = DateTime.now();
     final sanitized = breakdown.where((item) => item.quantity > 0).toList();
@@ -58,6 +63,7 @@ class CashEntry {
       description: description.trim(),
       breakdown: sanitized,
       createdAt: now,
+      currencyCode: currencyCode,
     );
   }
 
@@ -72,6 +78,7 @@ class CashEntry {
       amount: (data['amount'] as num).toDouble(),
       description: data['description'] as String? ?? '',
       createdAt: DateTime.parse(data['createdAt'] as String),
+      currencyCode: data['currencyCode'] as String? ?? 'USD',
       breakdown: breakdownJson
           .map(DenominationCount.fromJson)
           .toList(growable: false),
@@ -84,6 +91,7 @@ class CashEntry {
     'amount': amount,
     'description': description,
     'createdAt': createdAt.toIso8601String(),
+    'currencyCode': currencyCode,
     'breakdown': breakdown.map((item) => item.toJson()).toList(),
   });
 

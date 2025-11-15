@@ -1,11 +1,17 @@
 import 'package:flutter/material.dart';
 
 import '../../controllers/dashboard_controller.dart';
+import '../../models/currency.dart';
 
 class DashboardPage extends StatefulWidget {
-  const DashboardPage({super.key, required this.controller});
+  const DashboardPage({
+    super.key,
+    required this.controller,
+    required this.currency,
+  });
 
   final DashboardController controller;
+  final Currency currency;
 
   @override
   DashboardPageState createState() => DashboardPageState();
@@ -36,6 +42,8 @@ class DashboardPageState extends State<DashboardPage> {
 
   @override
   Widget build(BuildContext context) {
+    final currency = widget.currency;
+    final symbol = currency.symbol;
     final summary = _summary;
     final net = summary?.net ?? 0;
     final previousNet = summary?.netPrevious ?? 0;
@@ -52,10 +60,14 @@ class DashboardPageState extends State<DashboardPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Saldo total', style: Theme.of(context).textTheme.titleMedium),
+            Text(
+              'Saldo total (${currency.code})',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            Text(currency.name, style: Theme.of(context).textTheme.bodySmall),
             const SizedBox(height: 8),
             Text(
-              '\$ ${totalBalance.toStringAsFixed(2)}',
+              '$symbol ${totalBalance.toStringAsFixed(2)}',
               style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                 color: Colors.green.shade700,
               ),
@@ -91,11 +103,13 @@ class DashboardPageState extends State<DashboardPage> {
                       label: 'Ingresos',
                       amount: summary?.totalIncomes ?? 0,
                       color: Colors.green,
+                      symbol: symbol,
                     ),
                     _SummaryRow(
                       label: 'Gastos',
                       amount: summary?.totalExpenses ?? 0,
                       color: Colors.red,
+                      symbol: symbol,
                     ),
                     const Divider(height: 24),
                     Row(
@@ -106,7 +120,7 @@ class DashboardPageState extends State<DashboardPage> {
                           children: [
                             const Text('Neto actual'),
                             Text(
-                              '\$ ${net.toStringAsFixed(2)}',
+                              '$symbol ${net.toStringAsFixed(2)}',
                               style: Theme.of(context).textTheme.titleLarge,
                             ),
                           ],
@@ -117,7 +131,7 @@ class DashboardPageState extends State<DashboardPage> {
                             Text(
                               diff == 0
                                   ? 'Sin cambios vs. periodo previo'
-                                  : '$_comparisonPrefix \$ ${diff.abs().toStringAsFixed(2)}',
+                                  : '$_comparisonPrefix $symbol ${diff.abs().toStringAsFixed(2)}',
                               style: TextStyle(color: trendColor),
                             ),
                             Text(
@@ -135,7 +149,7 @@ class DashboardPageState extends State<DashboardPage> {
               ),
             ),
             const SizedBox(height: 24),
-            _DenominationBalanceCard(balances: balances),
+            _DenominationBalanceCard(balances: balances, symbol: symbol),
           ],
         ),
       ),
@@ -164,11 +178,13 @@ class _SummaryRow extends StatelessWidget {
     required this.label,
     required this.amount,
     required this.color,
+    required this.symbol,
   });
 
   final String label;
   final double amount;
   final Color color;
+  final String symbol;
 
   @override
   Widget build(BuildContext context) {
@@ -179,7 +195,7 @@ class _SummaryRow extends StatelessWidget {
         children: [
           Text(label),
           Text(
-            '\$ ${amount.toStringAsFixed(2)}',
+            '$symbol ${amount.toStringAsFixed(2)}',
             style: Theme.of(
               context,
             ).textTheme.titleMedium?.copyWith(color: color),
@@ -191,9 +207,13 @@ class _SummaryRow extends StatelessWidget {
 }
 
 class _DenominationBalanceCard extends StatelessWidget {
-  const _DenominationBalanceCard({required this.balances});
+  const _DenominationBalanceCard({
+    required this.balances,
+    required this.symbol,
+  });
 
   final List<DenominationBalance> balances;
+  final String symbol;
 
   @override
   Widget build(BuildContext context) {
@@ -222,13 +242,13 @@ class _DenominationBalanceCard extends StatelessWidget {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text('\$ ${balance.value.toStringAsFixed(2)}'),
+                          Text('$symbol ${balance.value.toStringAsFixed(2)}'),
                           Text(
                             '${balance.quantity} unidades',
                             style: Theme.of(context).textTheme.bodyMedium,
                           ),
                           Text(
-                            '\$ ${balance.amount.toStringAsFixed(2)}',
+                            '$symbol ${balance.amount.toStringAsFixed(2)}',
                             style: Theme.of(context).textTheme.titleSmall
                                 ?.copyWith(fontWeight: FontWeight.bold),
                           ),
@@ -245,7 +265,7 @@ class _DenominationBalanceCard extends StatelessWidget {
                         '${balances.fold<int>(0, (sum, item) => sum + item.quantity)} unidades',
                       ),
                       Text(
-                        '\$ ${balances.fold<double>(0, (sum, item) => sum + item.amount).toStringAsFixed(2)}',
+                        '$symbol ${balances.fold<double>(0, (sum, item) => sum + item.amount).toStringAsFixed(2)}',
                         style: Theme.of(context).textTheme.titleMedium
                             ?.copyWith(fontWeight: FontWeight.bold),
                       ),

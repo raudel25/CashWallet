@@ -1,12 +1,18 @@
 import 'package:flutter/material.dart';
 
 import '../../data/denomination_repository.dart';
+import '../../models/currency.dart';
 import '../../models/denomination.dart';
 
 class DenominationsPage extends StatefulWidget {
-  const DenominationsPage({super.key, required this.loadStock});
+  const DenominationsPage({
+    super.key,
+    required this.loadStock,
+    required this.currency,
+  });
 
   final Future<Map<double, int>> Function() loadStock;
+  final Currency currency;
 
   @override
   DenominationsPageState createState() => DenominationsPageState();
@@ -26,7 +32,7 @@ class DenominationsPageState extends State<DenominationsPage> {
   Future<void> openAddDialog() => _openAddDenominationDialog();
 
   Future<void> _loadDenominations() async {
-    final stored = await _repository.load();
+    final stored = await _repository.load(widget.currency.code);
     setState(() {
       _denominations = stored;
       _isLoading = false;
@@ -47,7 +53,7 @@ class DenominationsPageState extends State<DenominationsPage> {
 
     final updated = [..._denominations, Denomination(value)]
       ..sort((a, b) => a.value.compareTo(b.value));
-    await _repository.save(updated);
+    await _repository.save(widget.currency.code, updated);
 
     if (!mounted) return;
     setState(() => _denominations = updated);
@@ -61,7 +67,7 @@ class DenominationsPageState extends State<DenominationsPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'No puedes eliminar \$${denomination.value.toStringAsFixed(2)} porque aún tienes $available unidades.',
+            'No puedes eliminar ${widget.currency.symbol}${denomination.value.toStringAsFixed(2)} porque aún tienes $available unidades.',
           ),
         ),
       );
@@ -69,7 +75,7 @@ class DenominationsPageState extends State<DenominationsPage> {
     }
 
     final updated = _denominations.where((d) => d != denomination).toList();
-    await _repository.save(updated);
+    await _repository.save(widget.currency.code, updated);
 
     if (!mounted) return;
     setState(() => _denominations = updated);
@@ -92,9 +98,9 @@ class DenominationsPageState extends State<DenominationsPage> {
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'Monto',
-                prefixText: '\$ ',
+                prefixText: '${widget.currency.symbol} ',
               ),
               validator: (value) {
                 if (value == null || value.trim().isEmpty) {
@@ -146,7 +152,7 @@ class DenominationsPageState extends State<DenominationsPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Agrega cada una de las denominaciones de efectivo que tienes guardadas.',
+            'Agrega cada una de las denominaciones de efectivo (${widget.currency.code}) que tienes guardadas.',
             style: Theme.of(context).textTheme.bodyLarge,
           ),
           const SizedBox(height: 16),
@@ -160,6 +166,7 @@ class DenominationsPageState extends State<DenominationsPage> {
                       final denomination = _denominations[index];
                       return _DenominationTile(
                         denomination: denomination,
+                        symbol: widget.currency.symbol,
                         onDelete: () => _removeDenomination(denomination),
                       );
                     },
@@ -174,9 +181,14 @@ class DenominationsPageState extends State<DenominationsPage> {
 }
 
 class _DenominationTile extends StatelessWidget {
-  const _DenominationTile({required this.denomination, required this.onDelete});
+  const _DenominationTile({
+    required this.denomination,
+    required this.symbol,
+    required this.onDelete,
+  });
 
   final Denomination denomination;
+  final String symbol;
   final VoidCallback onDelete;
 
   String _formatAmount(double value) {
@@ -190,7 +202,7 @@ class _DenominationTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       child: ListTile(
-        title: Text('\$ ${_formatAmount(denomination.value)}'),
+        title: Text('$symbol ${_formatAmount(denomination.value)}'),
         subtitle: const Text('Denominación guardada'),
         trailing: IconButton(
           icon: const Icon(Icons.delete_outline),

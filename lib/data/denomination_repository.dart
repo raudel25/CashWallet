@@ -7,9 +7,11 @@ class DenominationRepository {
 
   static const _storageKey = 'cash_wallet_denominations';
 
-  Future<List<Denomination>> load() async {
+  String _keyFor(String currencyCode) => '${_storageKey}_$currencyCode';
+
+  Future<List<Denomination>> load(String currencyCode) async {
     final prefs = await SharedPreferences.getInstance();
-    final rawValues = prefs.getStringList(_storageKey) ?? [];
+    final rawValues = prefs.getStringList(_keyFor(currencyCode)) ?? [];
     final denominations =
         rawValues
             .map(Denomination.fromJson)
@@ -19,9 +21,9 @@ class DenominationRepository {
     return denominations;
   }
 
-  Future<void> save(List<Denomination> values) async {
+  Future<void> save(String currencyCode, List<Denomination> values) async {
     final prefs = await SharedPreferences.getInstance();
     final payload = values.map((value) => value.toJson()).toList();
-    await prefs.setStringList(_storageKey, payload);
+    await prefs.setStringList(_keyFor(currencyCode), payload);
   }
 }

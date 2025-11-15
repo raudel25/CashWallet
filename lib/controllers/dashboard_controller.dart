@@ -39,13 +39,16 @@ class DashboardController {
   DashboardController({
     required CashEntryRepository incomeRepository,
     required CashEntryRepository expenseRepository,
+    required String currencyCode,
     required this.onSummaryUpdated,
   })  : _incomeRepository = incomeRepository,
-        _expenseRepository = expenseRepository;
+        _expenseRepository = expenseRepository,
+        _currencyCode = currencyCode;
 
   final CashEntryRepository _incomeRepository;
   final CashEntryRepository _expenseRepository;
   final void Function(DashboardSummary) onSummaryUpdated;
+  String _currencyCode;
 
   DashboardRange range = DashboardRange.month;
   Timer? _refreshTimer;
@@ -68,9 +71,15 @@ class DashboardController {
     await _loadSummary();
   }
 
+  Future<void> setCurrency(String currencyCode) async {
+    if (currencyCode == _currencyCode) return;
+    _currencyCode = currencyCode;
+    await _loadSummary();
+  }
+
   Future<void> _loadSummary() async {
-    final incomesFuture = _incomeRepository.load();
-    final expensesFuture = _expenseRepository.load();
+    final incomesFuture = _incomeRepository.load(_currencyCode);
+    final expensesFuture = _expenseRepository.load(_currencyCode);
     final incomes = await incomesFuture;
     final expenses = await expensesFuture;
     final now = DateTime.now();
