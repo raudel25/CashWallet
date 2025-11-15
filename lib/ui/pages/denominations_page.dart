@@ -4,6 +4,7 @@ import '../../data/denomination_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/currency.dart';
 import '../../models/denomination.dart';
+import '../widgets/confirm_dialog.dart';
 
 class DenominationsPage extends StatefulWidget {
   const DenominationsPage({
@@ -81,6 +82,14 @@ class DenominationsPageState extends State<DenominationsPage> {
       );
       return;
     }
+
+    // Ask confirmation before removing
+    final confirmed = await showConfirmDialog(
+      context,
+      title: context.t('denominations_confirm_delete_title'),
+      content: context.t('denominations_confirm_delete_msg'),
+    );
+    if (!confirmed) return;
 
     final updated = _denominations.where((d) => d != denomination).toList();
     await _repository.save(widget.currency.code, updated);

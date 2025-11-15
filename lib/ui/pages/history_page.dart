@@ -5,6 +5,7 @@ import '../../l10n/app_localizations.dart';
 import '../../models/cash_entry.dart';
 import '../../models/currency.dart';
 import '../../models/denomination_count.dart';
+import '../widgets/confirm_dialog.dart';
 
 enum HistoryFilter { incomes, expenses }
 
@@ -60,6 +61,14 @@ class HistoryPageState extends State<HistoryPage> {
   }
 
   Future<void> _removeEntry(CashEntry entry) async {
+    // Confirm deletion with the user
+    final confirmed = await showConfirmDialog(
+      context,
+      title: context.t('history_confirm_delete_title'),
+      content: context.t('history_confirm_delete_msg'),
+    );
+    if (!confirmed) return;
+
     final repository = entry.type == CashEntryType.income
         ? widget.incomeRepository
         : widget.expenseRepository;

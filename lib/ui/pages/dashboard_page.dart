@@ -93,16 +93,19 @@ class DashboardPageState extends State<DashboardPage> {
                 ButtonSegment(
                   value: DashboardRange.day,
                   label: Text(context.loc.rangeLabel(DashboardRangeLabel.day)),
+                  icon: const Icon(Icons.calendar_view_day),
                 ),
                 ButtonSegment(
                   value: DashboardRange.week,
                   label: Text(context.loc.rangeLabel(DashboardRangeLabel.week)),
+                  icon: const Icon(Icons.calendar_view_week),
                 ),
                 ButtonSegment(
                   value: DashboardRange.month,
                   label: Text(
                     context.loc.rangeLabel(DashboardRangeLabel.month),
                   ),
+                  icon: const Icon(Icons.calendar_view_month),
                 ),
               ],
               selected: {_selectedRange},

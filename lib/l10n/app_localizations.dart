@@ -128,6 +128,12 @@ class AppLocalizations {
           'Record your expenses from the home screen.',
       'history_no_description': 'No description',
       'history_breakdown': 'Breakdown: {breakdown}',
+      'history_confirm_delete_title': 'Delete entry',
+      'history_confirm_delete_msg':
+          'Are you sure you want to delete this entry? This action cannot be undone.',
+      'denominations_confirm_delete_title': 'Delete denomination',
+      'denominations_confirm_delete_msg':
+          'Are you sure you want to delete this denomination?',
       'language_spanish': 'Spanish',
       'language_english': 'English',
       'range_day': 'Day',
@@ -220,6 +226,12 @@ class AppLocalizations {
           'Registra tus gastos desde la pantalla de inicio.',
       'history_no_description': 'Sin descripción',
       'history_breakdown': 'Desglose: {breakdown}',
+      'history_confirm_delete_title': 'Eliminar movimiento',
+      'history_confirm_delete_msg':
+          '¿Seguro que deseas eliminar este movimiento? Esta acción no se puede deshacer.',
+      'denominations_confirm_delete_title': 'Eliminar denominación',
+      'denominations_confirm_delete_msg':
+          '¿Seguro que deseas eliminar esta denominación?',
       'language_spanish': 'Español',
       'language_english': 'Inglés',
       'range_day': 'Día',
