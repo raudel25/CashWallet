@@ -16,6 +16,10 @@ class SecurityService {
 
   Future<bool> isBiometricAvailable() async {
     try {
+      // Prefer checking available biometrics; some platforms return canCheckBiometrics
+      // but no enrolled biometrics. Use both checks for robustness.
+      final available = await _localAuth.getAvailableBiometrics();
+      if (available.isNotEmpty) return true;
       final canCheck = await _localAuth.canCheckBiometrics;
       final isDeviceSupported = await _localAuth.isDeviceSupported();
       return canCheck && isDeviceSupported;
@@ -78,10 +82,11 @@ class SecurityService {
 
   Future<bool> authenticateBiometrics({String reason = 'Authenticate'}) async {
     try {
+      // Allow device credential fallback (biometric or device PIN/passcode)
       final didAuthenticate = await _localAuth.authenticate(
         localizedReason: reason,
         options: const AuthenticationOptions(
-          biometricOnly: true,
+          biometricOnly: false,
           stickyAuth: true,
         ),
       );

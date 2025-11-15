@@ -600,7 +600,7 @@ class _IncomeFormSheetState extends State<_IncomeFormSheet> {
           ),
           const SizedBox(height: 16),
           SizedBox(
-            height: 240,
+            height: 150,
             child: ListView.separated(
               itemBuilder: (context, index) {
                 final denomination = widget.denominations[index];
@@ -669,7 +669,7 @@ class _IncomeFormSheetState extends State<_IncomeFormSheet> {
                 child: FilledButton.icon(
                   onPressed: _submit,
                   icon: const Icon(Icons.save),
-                  label: Text(context.t('home_save_income')),
+                  label: Text(context.t('common_save')),
                 ),
               ),
             ],
@@ -908,7 +908,7 @@ class _ExpenseFormSheetState extends State<_ExpenseFormSheet> {
                 child: FilledButton.icon(
                   onPressed: _submit,
                   icon: const Icon(Icons.save),
-                  label: Text(context.t('home_save_expense')),
+                  label: Text(context.t('common_save')),
                 ),
               ),
             ],
