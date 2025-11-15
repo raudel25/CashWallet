@@ -11,6 +11,7 @@ class SettingsPage extends StatelessWidget {
     required this.onSelectLanguage,
     required this.currentLanguageLabel,
     required this.onOpenDenominations,
+    required this.onOpenSecurity,
     required this.onSelectTheme,
     required this.currentThemeMode,
   });
@@ -20,6 +21,7 @@ class SettingsPage extends StatelessWidget {
   final VoidCallback onSelectLanguage;
   final String currentLanguageLabel;
   final VoidCallback onOpenDenominations;
+  final VoidCallback onOpenSecurity;
   final Future<void> Function(ThemeMode) onSelectTheme;
   final ThemeMode currentThemeMode;
 
@@ -80,6 +82,16 @@ class SettingsPage extends StatelessWidget {
         const SizedBox(height: 12),
         Card(
           child: ListTile(
+            leading: const Icon(Icons.security),
+            title: Text(context.t('security_title')),
+            subtitle: Text(context.t('security_subtitle')),
+            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+            onTap: onOpenSecurity,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Card(
+          child: ListTile(
             leading: const Icon(Icons.brightness_6),
             title: Text(context.t('settings_theme')),
             subtitle: Text(_themeLabel(context, currentThemeMode)),
@@ -88,52 +100,37 @@ class SettingsPage extends StatelessWidget {
               final selected = await showModalBottomSheet<ThemeMode>(
                 context: context,
                 builder: (context) {
-                  ThemeMode temp = currentThemeMode;
-                  return StatefulBuilder(
-                    builder: (context, setState) => Column(
-                      mainAxisSize: MainAxisSize.min,
+                  return SafeArea(
+                    child: ListView(
+                      shrinkWrap: true,
                       children: [
+                        Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Text(
+                            context.t('settings_theme'),
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                        ),
                         RadioListTile<ThemeMode>(
                           value: ThemeMode.system,
-                          groupValue: temp,
+                          groupValue: currentThemeMode,
                           title: Text(context.t('theme_system')),
-                          onChanged: (v) => setState(() => temp = v!),
+                          onChanged: (_) =>
+                              Navigator.of(context).pop(ThemeMode.system),
                         ),
                         RadioListTile<ThemeMode>(
                           value: ThemeMode.light,
-                          groupValue: temp,
+                          groupValue: currentThemeMode,
                           title: Text(context.t('theme_light')),
-                          onChanged: (v) => setState(() => temp = v!),
+                          onChanged: (_) =>
+                              Navigator.of(context).pop(ThemeMode.light),
                         ),
                         RadioListTile<ThemeMode>(
                           value: ThemeMode.dark,
-                          groupValue: temp,
+                          groupValue: currentThemeMode,
                           title: Text(context.t('theme_dark')),
-                          onChanged: (v) => setState(() => temp = v!),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 24,
-                            vertical: 12,
-                          ),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: OutlinedButton(
-                                  onPressed: () => Navigator.of(context).pop(),
-                                  child: Text(context.t('common_cancel')),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: FilledButton(
-                                  onPressed: () =>
-                                      Navigator.of(context).pop(temp),
-                                  child: Text(context.t('common_save')),
-                                ),
-                              ),
-                            ],
-                          ),
+                          onChanged: (_) =>
+                              Navigator.of(context).pop(ThemeMode.dark),
                         ),
                       ],
                     ),

@@ -4,7 +4,9 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'l10n/app_localizations.dart';
 import 'services/language_service.dart';
 import 'services/theme_service.dart';
+import 'services/security_service.dart';
 import 'ui/home_page.dart';
+import 'ui/pages/auth_page.dart';
 
 class CashWalletApp extends StatefulWidget {
   const CashWalletApp({super.key});
@@ -16,14 +18,24 @@ class CashWalletApp extends StatefulWidget {
 class _CashWalletAppState extends State<CashWalletApp> {
   final LanguageService _languageService = LanguageService();
   final ThemeService _themeService = ThemeService();
+  final SecurityService _securityService = SecurityService();
   Locale? _locale;
   ThemeMode? _themeMode;
+  bool _requireAuth = false;
+  bool _authenticated = false;
 
   @override
   void initState() {
     super.initState();
     _loadLocale();
     _loadTheme();
+    _loadSecurity();
+  }
+
+  Future<void> _loadSecurity() async {
+    final required = await _securityService.anySecurityEnabled();
+    if (!mounted) return;
+    setState(() => _requireAuth = required);
   }
 
   Future<void> _loadTheme() async {
@@ -84,11 +96,18 @@ class _CashWalletAppState extends State<CashWalletApp> {
       ),
       // Use saved theme mode (or system initially)
       themeMode: _themeMode ?? ThemeMode.system,
-      home: HomePage(
-        onLanguageChanged: _handleLanguageChanged,
-        onThemeChanged: _handleThemeChanged,
-        currentThemeMode: _themeMode ?? ThemeMode.system,
-      ),
+      home: (_requireAuth && !_authenticated)
+          ? AuthPage(
+              securityService: _securityService,
+              onAuthenticated: () {
+                setState(() => _authenticated = true);
+              },
+            )
+          : HomePage(
+              onLanguageChanged: _handleLanguageChanged,
+              onThemeChanged: _handleThemeChanged,
+              currentThemeMode: _themeMode ?? ThemeMode.system,
+            ),
     );
   }
 }

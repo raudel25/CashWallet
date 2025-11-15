@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../controllers/dashboard_controller.dart';
 import '../data/cash_entry_repository.dart';
 import '../data/denomination_repository.dart';
+import '../services/security_service.dart';
 import '../l10n/app_localizations.dart';
 import '../models/cash_entry.dart';
 import '../models/currency.dart';
@@ -15,6 +16,7 @@ import 'pages/dashboard_page.dart';
 import 'pages/denominations_screen.dart';
 import 'pages/history_page.dart';
 import 'pages/settings_page.dart';
+import 'pages/security_screen.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({
@@ -42,6 +44,7 @@ class _HomePageState extends State<HomePage> {
   final _denominationRepository = const DenominationRepository();
   final CurrencyService _currencyService = CurrencyService();
   final LanguageService _languageService = LanguageService();
+  final SecurityService _securityService = SecurityService();
 
   Currency? _currentCurrency;
   bool _isInitializing = true;
@@ -142,6 +145,7 @@ class _HomePageState extends State<HomePage> {
         onSelectCurrency: _openCurrencySelector,
         onSelectLanguage: _openLanguageSelector,
         onOpenDenominations: _openDenominationsScreen,
+        onOpenSecurity: _openSecurityScreen,
         currentLanguageLabel: context.loc.languageName(
           Localizations.localeOf(context).languageCode,
         ),
@@ -416,6 +420,14 @@ class _HomePageState extends State<HomePage> {
           loadStock: _loadDenominationStock,
           currency: currency,
         ),
+      ),
+    );
+  }
+
+  Future<void> _openSecurityScreen() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => SecurityScreen(securityService: _securityService),
       ),
     );
   }
