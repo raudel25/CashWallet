@@ -8,7 +8,8 @@ plugins {
 android {
     namespace = "com.example.cash_wallet"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
+    // Use the highest NDK required by plugins (backward compatible)
+    ndkVersion = "27.0.12077973"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
@@ -41,4 +42,13 @@ android {
 
 flutter {
     source = "../.."
+}
+
+// Add annotation libs that some transitive dependencies (eg. Tink) reference
+// so R8 doesn't fail with missing class errors during minification.
+dependencies {
+    // Provides com.google.errorprone.annotations.*
+    implementation("com.google.errorprone:error_prone_annotations:2.20.0")
+    // Provides javax.annotation.* (Nullable, GuardedBy, etc.)
+    implementation("com.google.code.findbugs:jsr305:3.0.2")
 }
