@@ -1,11 +1,18 @@
+import 'dart:async';
+
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/cash_entry.dart';
 
 class CashEntryRepository {
-  const CashEntryRepository(this.storageKey);
+  CashEntryRepository(this.storageKey);
 
   final String storageKey;
+
+  // Broadcast stream to notify listeners when a save occurs for a currency.
+  final StreamController<String> _changes = StreamController.broadcast();
+
+  Stream<String> get changes => _changes.stream;
 
   String _keyFor(String currencyCode) => '${storageKey}_$currencyCode';
 
@@ -21,5 +28,16 @@ class CashEntryRepository {
     final prefs = await SharedPreferences.getInstance();
     final payload = entries.map((entry) => entry.toJson()).toList();
     await prefs.setStringList(_keyFor(currencyCode), payload);
+    // Notify listeners that entries for this currency were updated.
+    try {
+      _changes.add(currencyCode);
+    } catch (_) {
+      // ignore if controller is closed or add fails
+    }
+  }
+
+  // Close controller when repository is disposed (not used currently).
+  void dispose() {
+    _changes.close();
   }
 }

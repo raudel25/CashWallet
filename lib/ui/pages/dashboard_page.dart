@@ -26,6 +26,9 @@ class DashboardPageState extends State<DashboardPage> {
   void initState() {
     super.initState();
     widget.controller.range = _selectedRange;
+    // Request a fresh summary when the page is initialized so the UI updates
+    // even if the controller previously loaded data before the widget was built.
+    widget.controller.refresh();
   }
 
   void updateSummary(DashboardSummary summary) {

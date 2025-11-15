@@ -30,8 +30,8 @@ class _HomePageState extends State<HomePage> {
   final _historyKey = GlobalKey<HistoryPageState>();
   late final DashboardController _dashboardController;
 
-  final _incomeRepository = const CashEntryRepository('cash_wallet_incomes');
-  final _expenseRepository = const CashEntryRepository('cash_wallet_expenses');
+  final _incomeRepository = CashEntryRepository('cash_wallet_incomes');
+  final _expenseRepository = CashEntryRepository('cash_wallet_expenses');
   final _denominationRepository = const DenominationRepository();
   final CurrencyService _currencyService = CurrencyService();
   final LanguageService _languageService = LanguageService();
@@ -228,7 +228,8 @@ class _HomePageState extends State<HomePage> {
       },
     );
 
-    if (selected == null || selected.languageCode == currentLocale.languageCode) {
+    if (selected == null ||
+        selected.languageCode == currentLocale.languageCode) {
       return;
     }
     await widget.onLanguageChanged(selected);
