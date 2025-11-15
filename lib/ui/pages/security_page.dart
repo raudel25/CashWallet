@@ -41,6 +41,8 @@ class _SecurityPageState extends State<SecurityPage> {
     final formKey = GlobalKey<FormState>();
     final ctrl1 = TextEditingController();
     final ctrl2 = TextEditingController();
+    final node1 = FocusNode();
+    final node2 = FocusNode();
     final res = await showDialog<bool>(
       context: context,
       builder: (context) {
@@ -55,6 +57,7 @@ class _SecurityPageState extends State<SecurityPage> {
                   controller: ctrl1,
                   keyboardType: TextInputType.number,
                   obscureText: true,
+                  focusNode: node1,
                   decoration: InputDecoration(
                     labelText: context.t('security_pin'),
                   ),
@@ -63,11 +66,14 @@ class _SecurityPageState extends State<SecurityPage> {
                       return context.t('security_pin_min');
                     return null;
                   },
+                  onFieldSubmitted: (_) =>
+                      FocusScope.of(context).requestFocus(node2),
                 ),
                 TextFormField(
                   controller: ctrl2,
                   keyboardType: TextInputType.number,
                   obscureText: true,
+                  focusNode: node2,
                   decoration: InputDecoration(
                     labelText: context.t('security_confirm'),
                   ),
@@ -75,6 +81,11 @@ class _SecurityPageState extends State<SecurityPage> {
                     if (v != ctrl1.text)
                       return context.t('security_confirm_match');
                     return null;
+                  },
+                  onFieldSubmitted: (_) {
+                    if (formKey.currentState?.validate() ?? false) {
+                      Navigator.of(context).pop(true);
+                    }
                   },
                 ),
               ],
@@ -100,6 +111,8 @@ class _SecurityPageState extends State<SecurityPage> {
       await widget.securityService.setPin(ctrl1.text.trim());
       await _loadState();
     }
+    node1.dispose();
+    node2.dispose();
   }
 
   Future<void> _removePin() async {
@@ -111,6 +124,8 @@ class _SecurityPageState extends State<SecurityPage> {
     final formKey = GlobalKey<FormState>();
     final ctrl1 = TextEditingController();
     final ctrl2 = TextEditingController();
+    final node1 = FocusNode();
+    final node2 = FocusNode();
     final res = await showDialog<bool>(
       context: context,
       builder: (context) {
@@ -124,6 +139,7 @@ class _SecurityPageState extends State<SecurityPage> {
                 TextFormField(
                   controller: ctrl1,
                   obscureText: true,
+                  focusNode: node1,
                   decoration: InputDecoration(
                     labelText: context.t('security_password'),
                   ),
@@ -132,10 +148,13 @@ class _SecurityPageState extends State<SecurityPage> {
                       return context.t('security_password_min');
                     return null;
                   },
+                  onFieldSubmitted: (_) =>
+                      FocusScope.of(context).requestFocus(node2),
                 ),
                 TextFormField(
                   controller: ctrl2,
                   obscureText: true,
+                  focusNode: node2,
                   decoration: InputDecoration(
                     labelText: context.t('security_confirm'),
                   ),
@@ -143,6 +162,11 @@ class _SecurityPageState extends State<SecurityPage> {
                     if (v != ctrl1.text)
                       return context.t('security_confirm_match');
                     return null;
+                  },
+                  onFieldSubmitted: (_) {
+                    if (formKey.currentState?.validate() ?? false) {
+                      Navigator.of(context).pop(true);
+                    }
                   },
                 ),
               ],

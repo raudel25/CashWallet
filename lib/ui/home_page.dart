@@ -505,6 +505,8 @@ class _IncomeFormSheet extends StatefulWidget {
 class _IncomeFormSheetState extends State<_IncomeFormSheet> {
   late final Map<double, TextEditingController> _quantityControllers;
   late final TextEditingController _descriptionController;
+  late final Map<double, FocusNode> _quantityFocusNodes;
+  late final FocusNode _descriptionFocus;
   double _total = 0;
 
   @override
@@ -514,7 +516,12 @@ class _IncomeFormSheetState extends State<_IncomeFormSheet> {
       for (final denomination in widget.denominations)
         denomination.value: TextEditingController(text: '0'),
     };
+    _quantityFocusNodes = {
+      for (final denomination in widget.denominations)
+        denomination.value: FocusNode(),
+    };
     _descriptionController = TextEditingController();
+    _descriptionFocus = FocusNode();
   }
 
   @override
@@ -522,6 +529,10 @@ class _IncomeFormSheetState extends State<_IncomeFormSheet> {
     for (final controller in _quantityControllers.values) {
       controller.dispose();
     }
+    for (final node in _quantityFocusNodes.values) {
+      node.dispose();
+    }
+    _descriptionFocus.dispose();
     _descriptionController.dispose();
     super.dispose();
   }
@@ -594,8 +605,11 @@ class _IncomeFormSheetState extends State<_IncomeFormSheet> {
               itemBuilder: (context, index) {
                 final denomination = widget.denominations[index];
                 final controller = _quantityControllers[denomination.value]!;
+                final focusNode = _quantityFocusNodes[denomination.value]!;
+                final isLast = index == widget.denominations.length - 1;
                 return TextFormField(
                   controller: controller,
+                  focusNode: focusNode,
                   keyboardType: TextInputType.number,
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                   decoration: InputDecoration(
@@ -604,6 +618,14 @@ class _IncomeFormSheetState extends State<_IncomeFormSheet> {
                     suffixText: context.t('common_units'),
                   ),
                   onChanged: (_) => _updateTotal(),
+                  onFieldSubmitted: (_) {
+                    if (!isLast) {
+                      final nextDenom = widget.denominations[index + 1].value;
+                      _quantityFocusNodes[nextDenom]?.requestFocus();
+                    } else {
+                      _descriptionFocus.requestFocus();
+                    }
+                  },
                 );
               },
               separatorBuilder: (_, __) => const SizedBox(height: 8),
@@ -613,10 +635,12 @@ class _IncomeFormSheetState extends State<_IncomeFormSheet> {
           const SizedBox(height: 16),
           TextFormField(
             controller: _descriptionController,
+            focusNode: _descriptionFocus,
             decoration: InputDecoration(
               labelText: context.t('home_description_label'),
               hintText: context.t('home_description_income_hint'),
             ),
+            onFieldSubmitted: (_) => _submit(),
           ),
           const SizedBox(height: 16),
           Row(
@@ -674,6 +698,8 @@ class _ExpenseFormSheet extends StatefulWidget {
 class _ExpenseFormSheetState extends State<_ExpenseFormSheet> {
   late final Map<double, TextEditingController> _quantityControllers;
   late final TextEditingController _descriptionController;
+  late final Map<double, FocusNode> _quantityFocusNodes;
+  late final FocusNode _descriptionFocus;
   double _total = 0;
   Map<double, String> _errors = {};
 
@@ -684,7 +710,12 @@ class _ExpenseFormSheetState extends State<_ExpenseFormSheet> {
       for (final denomination in widget.denominations)
         denomination.value: TextEditingController(text: '0'),
     };
+    _quantityFocusNodes = {
+      for (final denomination in widget.denominations)
+        denomination.value: FocusNode(),
+    };
     _descriptionController = TextEditingController();
+    _descriptionFocus = FocusNode();
   }
 
   @override
@@ -692,6 +723,10 @@ class _ExpenseFormSheetState extends State<_ExpenseFormSheet> {
     for (final controller in _quantityControllers.values) {
       controller.dispose();
     }
+    for (final node in _quantityFocusNodes.values) {
+      node.dispose();
+    }
+    _descriptionFocus.dispose();
     _descriptionController.dispose();
     super.dispose();
   }
@@ -788,11 +823,14 @@ class _ExpenseFormSheetState extends State<_ExpenseFormSheet> {
                 final denomination = widget.denominations[index];
                 final controller = _quantityControllers[denomination.value]!;
                 final error = _errors[denomination.value];
+                final focusNode = _quantityFocusNodes[denomination.value]!;
+                final isLast = index == widget.denominations.length - 1;
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     TextFormField(
                       controller: controller,
+                      focusNode: focusNode,
                       keyboardType: TextInputType.number,
                       inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                       decoration: InputDecoration(
@@ -806,6 +844,15 @@ class _ExpenseFormSheetState extends State<_ExpenseFormSheet> {
                           setState(() {
                             _errors.remove(denomination.value);
                           });
+                        }
+                      },
+                      onFieldSubmitted: (_) {
+                        if (!isLast) {
+                          final nextDenom =
+                              widget.denominations[index + 1].value;
+                          _quantityFocusNodes[nextDenom]?.requestFocus();
+                        } else {
+                          _descriptionFocus.requestFocus();
                         }
                       },
                     ),
@@ -827,10 +874,12 @@ class _ExpenseFormSheetState extends State<_ExpenseFormSheet> {
           const SizedBox(height: 16),
           TextFormField(
             controller: _descriptionController,
+            focusNode: _descriptionFocus,
             decoration: InputDecoration(
               labelText: context.t('home_description_label'),
               hintText: context.t('home_description_expense_hint'),
             ),
+            onFieldSubmitted: (_) => _submit(),
           ),
           const SizedBox(height: 16),
           Row(
