@@ -81,10 +81,20 @@ class DashboardPageState extends State<DashboardPage> {
               style: Theme.of(context).textTheme.bodySmall,
             ),
             const SizedBox(height: 8),
-            Text(
-              '$symbol ${totalBalance.toStringAsFixed(2)}',
-              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                color: Colors.green.shade700,
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 400),
+              transitionBuilder: (child, animation) => FadeTransition(
+                opacity: animation,
+                child: ScaleTransition(scale: animation, child: child),
+              ),
+              child: Text(
+                '$symbol ${totalBalance.toStringAsFixed(2)}',
+                key: ValueKey<String>(
+                  'balance-${totalBalance.toStringAsFixed(2)}',
+                ),
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  color: Colors.green.shade700,
+                ),
               ),
             ),
             const SizedBox(height: 24),
@@ -187,7 +197,14 @@ class DashboardPageState extends State<DashboardPage> {
               ),
             ),
             const SizedBox(height: 24),
-            _DenominationBalanceCard(balances: balances, symbol: symbol),
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 350),
+              child: _DenominationBalanceCard(
+                key: ValueKey<int>(balances.length),
+                balances: balances,
+                symbol: symbol,
+              ),
+            ),
           ],
         ),
       ),
@@ -248,9 +265,10 @@ class _SummaryRow extends StatelessWidget {
 
 class _DenominationBalanceCard extends StatelessWidget {
   const _DenominationBalanceCard({
+    Key? key,
     required this.balances,
     required this.symbol,
-  });
+  }) : super(key: key);
 
   final List<DenominationBalance> balances;
   final String symbol;

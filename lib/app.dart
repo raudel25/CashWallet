@@ -3,6 +3,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'l10n/app_localizations.dart';
 import 'services/language_service.dart';
+import 'services/theme_service.dart';
 import 'ui/home_page.dart';
 
 class CashWalletApp extends StatefulWidget {
@@ -14,12 +15,21 @@ class CashWalletApp extends StatefulWidget {
 
 class _CashWalletAppState extends State<CashWalletApp> {
   final LanguageService _languageService = LanguageService();
+  final ThemeService _themeService = ThemeService();
   Locale? _locale;
+  ThemeMode? _themeMode;
 
   @override
   void initState() {
     super.initState();
     _loadLocale();
+    _loadTheme();
+  }
+
+  Future<void> _loadTheme() async {
+    final mode = await _themeService.loadThemeMode();
+    if (!mounted) return;
+    setState(() => _themeMode = mode);
   }
 
   Future<void> _loadLocale() async {
@@ -38,6 +48,14 @@ class _CashWalletAppState extends State<CashWalletApp> {
     });
   }
 
+  Future<void> _handleThemeChanged(ThemeMode mode) async {
+    await _themeService.saveThemeMode(mode);
+    if (!mounted) return;
+    setState(() {
+      _themeMode = mode;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -53,8 +71,24 @@ class _CashWalletAppState extends State<CashWalletApp> {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
         useMaterial3: true,
+        brightness: Brightness.light,
+        scaffoldBackgroundColor: Colors.white,
       ),
-      home: HomePage(onLanguageChanged: _handleLanguageChanged),
+      darkTheme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.green,
+          brightness: Brightness.dark,
+        ),
+        useMaterial3: true,
+        brightness: Brightness.dark,
+      ),
+      // Use saved theme mode (or system initially)
+      themeMode: _themeMode ?? ThemeMode.system,
+      home: HomePage(
+        onLanguageChanged: _handleLanguageChanged,
+        onThemeChanged: _handleThemeChanged,
+        currentThemeMode: _themeMode ?? ThemeMode.system,
+      ),
     );
   }
 }

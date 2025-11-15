@@ -90,6 +90,11 @@ class AppLocalizations {
       'settings_currency_subtitle': '{name} ({code})',
       'settings_language_subtitle': '{language}',
       'settings_denominations_subtitle': 'Manage your bills in {currency}.',
+      'settings_theme': 'Theme',
+      'settings_theme_subtitle': '{theme}',
+      'theme_system': 'System',
+      'theme_light': 'Light',
+      'theme_dark': 'Dark',
       'denominations_title': 'Denominations ({currency})',
       'denominations_intro':
           'Add each cash denomination ({currency}) you have stored.',
@@ -188,6 +193,11 @@ class AppLocalizations {
       'settings_language_subtitle': '{language}',
       'settings_denominations_subtitle':
           'Administra tus billetes en {currency}.',
+      'settings_theme': 'Tema',
+      'settings_theme_subtitle': '{theme}',
+      'theme_system': 'Sistema',
+      'theme_light': 'Claro',
+      'theme_dark': 'Oscuro',
       'denominations_title': 'Denominaciones ({currency})',
       'denominations_intro':
           'Agrega cada una de las denominaciones de efectivo ({currency}) que tienes guardadas.',

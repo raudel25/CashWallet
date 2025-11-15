@@ -17,9 +17,16 @@ import 'pages/history_page.dart';
 import 'pages/settings_page.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key, required this.onLanguageChanged});
+  const HomePage({
+    super.key,
+    required this.onLanguageChanged,
+    required this.onThemeChanged,
+    required this.currentThemeMode,
+  });
 
   final Future<void> Function(Locale) onLanguageChanged;
+  final Future<void> Function(ThemeMode) onThemeChanged;
+  final ThemeMode currentThemeMode;
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -138,6 +145,8 @@ class _HomePageState extends State<HomePage> {
         currentLanguageLabel: context.loc.languageName(
           Localizations.localeOf(context).languageCode,
         ),
+        onSelectTheme: widget.onThemeChanged,
+        currentThemeMode: widget.currentThemeMode,
       ),
     ];
   }
@@ -611,13 +620,23 @@ class _IncomeFormSheetState extends State<_IncomeFormSheet> {
             ],
           ),
           const SizedBox(height: 24),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton.icon(
-              onPressed: _submit,
-              icon: const Icon(Icons.save),
-              label: Text(context.t('home_save_income')),
-            ),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: Text(context.t('common_cancel')),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: FilledButton.icon(
+                  onPressed: _submit,
+                  icon: const Icon(Icons.save),
+                  label: Text(context.t('home_save_income')),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -815,13 +834,23 @@ class _ExpenseFormSheetState extends State<_ExpenseFormSheet> {
             ],
           ),
           const SizedBox(height: 24),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton.icon(
-              onPressed: _submit,
-              icon: const Icon(Icons.save),
-              label: Text(context.t('home_save_expense')),
-            ),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: Text(context.t('common_cancel')),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: FilledButton.icon(
+                  onPressed: _submit,
+                  icon: const Icon(Icons.save),
+                  label: Text(context.t('home_save_expense')),
+                ),
+              ),
+            ],
           ),
         ],
       ),
