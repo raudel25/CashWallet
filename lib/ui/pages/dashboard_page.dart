@@ -205,6 +205,7 @@ class DashboardPageState extends State<DashboardPage> {
                 symbol: symbol,
               ),
             ),
+            const SizedBox(height: 80),
           ],
         ),
       ),

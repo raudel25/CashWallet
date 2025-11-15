@@ -1,5 +1,7 @@
 package com.example.cash_wallet
 
-import io.flutter.embedding.android.FlutterActivity
+import io.flutter.embedding.android.FlutterFragmentActivity
 
-class MainActivity : FlutterActivity()
+// Use FlutterFragmentActivity so plugins that require a FragmentActivity
+// (like local_auth on Android) work correctly.
+class MainActivity : FlutterFragmentActivity()

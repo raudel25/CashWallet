@@ -82,17 +82,58 @@ class SecurityService {
 
   Future<bool> authenticateBiometrics({String reason = 'Authenticate'}) async {
     try {
-      // Allow device credential fallback (biometric or device PIN/passcode)
-      final didAuthenticate = await _localAuth.authenticate(
-        localizedReason: reason,
-        options: const AuthenticationOptions(
-          biometricOnly: false,
-          stickyAuth: true,
-        ),
+      // Inspect available biometrics and device support first.
+      final available = await _localAuth.getAvailableBiometrics();
+      debugPrint('SecurityService: available biometrics => $available');
+
+      final canCheck = await _localAuth.canCheckBiometrics;
+      final isDeviceSupported = await _localAuth.isDeviceSupported();
+      debugPrint(
+        'SecurityService: canCheckBiometrics=$canCheck, isDeviceSupported=$isDeviceSupported',
       );
-      return didAuthenticate;
-    } on PlatformException catch (e) {
-      debugPrint('Biometric auth error: $e');
+
+      if (available.isEmpty && !canCheck && !isDeviceSupported) {
+        debugPrint('SecurityService: no biometric/device-credential available');
+        return false;
+      }
+
+      // First attempt: allow device credential fallback, but do not use stickyAuth
+      // as it can cause activity lifecycle issues on some Android devices.
+      try {
+        final didAuthenticate = await _localAuth.authenticate(
+          localizedReason: reason,
+          options: const AuthenticationOptions(
+            biometricOnly: false,
+            stickyAuth: false,
+          ),
+        );
+        debugPrint('SecurityService: authenticate result => $didAuthenticate');
+        return didAuthenticate;
+      } on PlatformException catch (e) {
+        // Log and attempt a safer fallback: biometric-only without stickyAuth.
+        debugPrint(
+          'SecurityService: primary authenticate PlatformException: $e',
+        );
+        try {
+          final didFallback = await _localAuth.authenticate(
+            localizedReason: reason,
+            options: const AuthenticationOptions(
+              biometricOnly: true,
+              stickyAuth: false,
+            ),
+          );
+          debugPrint(
+            'SecurityService: fallback authenticate result => $didFallback',
+          );
+          return didFallback;
+        } on Exception catch (e2) {
+          debugPrint('SecurityService: fallback authenticate failed: $e2');
+          return false;
+        }
+      }
+    } catch (e, st) {
+      debugPrint('SecurityService: Biometric auth unexpected error: $e');
+      debugPrint(st.toString());
       return false;
     }
   }

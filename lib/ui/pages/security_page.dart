@@ -231,35 +231,65 @@ class _SecurityPageState extends State<SecurityPage> {
   }
 
   Future<void> _toggleBiometric(bool value) async {
-    if (value) {
-      final hasPin = await widget.securityService.hasPin();
-      final hasPwd = await widget.securityService.hasPassword();
-      if (!hasPin && !hasPwd) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(context.t('security_biometric_requires_credential')),
-          ),
+    try {
+      if (value) {
+        debugPrint('SecurityPage: enabling biometric requested');
+        final hasPin = await widget.securityService.hasPin();
+        final hasPwd = await widget.securityService.hasPassword();
+        debugPrint('SecurityPage: hasPin=$hasPin, hasPwd=$hasPwd');
+        if (!hasPin && !hasPwd) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                context.t('security_biometric_requires_credential'),
+              ),
+            ),
+          );
+          return;
+        }
+        final available = await widget.securityService.isBiometricAvailable();
+        debugPrint('SecurityPage: biometric available => $available');
+        if (!available) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(context.t('security_biometric_unavailable')),
+            ),
+          );
+          return;
+        }
+        final ok = await widget.securityService.authenticateBiometrics(
+          reason: context.t('security_biometric_verify'),
         );
-        return;
+        debugPrint('SecurityPage: authenticateBiometrics => $ok');
+        if (!ok) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(context.t('security_biometric_failed'))),
+          );
+          return;
+        }
+        await widget.securityService.setBiometricEnabled(true);
+        // Update UI immediately so switch reflects the change
+        if (mounted) setState(() => _biometricEnabled = true);
+      } else {
+        debugPrint('SecurityPage: disabling biometric requested');
+        await widget.securityService.setBiometricEnabled(false);
+        if (mounted) setState(() => _biometricEnabled = false);
       }
-      final available = await widget.securityService.isBiometricAvailable();
-      if (!available) {
-        if (!mounted) return;
+    } catch (e, st) {
+      debugPrint('SecurityPage: error toggling biometric: $e');
+      debugPrint(st.toString());
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(context.t('security_biometric_unavailable'))),
+          SnackBar(content: Text(context.t('security_biometric_error'))),
         );
-        return;
       }
-      final ok = await widget.securityService.authenticateBiometrics(
-        reason: context.t('security_biometric_verify'),
-      );
-      if (!ok) return;
-      await widget.securityService.setBiometricEnabled(true);
-    } else {
-      await widget.securityService.setBiometricEnabled(false);
+    } finally {
+      // Refresh latest state from storage in background
+      await _loadState();
     }
-    await _loadState();
   }
 
   @override
