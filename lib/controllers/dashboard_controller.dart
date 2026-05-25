@@ -13,6 +13,7 @@ class DashboardSummary {
     required this.previousExpenses,
     required this.totalBalance,
     required this.denominationBalances,
+    required this.trend,
   });
 
   final double totalIncomes;
@@ -21,9 +22,26 @@ class DashboardSummary {
   final double previousExpenses;
   final double totalBalance;
   final List<DenominationBalance> denominationBalances;
+  final List<TrendBucket> trend;
 
   double get net => totalIncomes - totalExpenses;
   double get netPrevious => previousIncomes - previousExpenses;
+}
+
+class TrendBucket {
+  const TrendBucket({
+    required this.label,
+    required this.start,
+    required this.incomes,
+    required this.expenses,
+  });
+
+  final String label;
+  final DateTime start;
+  final double incomes;
+  final double expenses;
+
+  double get net => incomes - expenses;
 }
 
 class DenominationBalance {
@@ -116,6 +134,8 @@ class DashboardController {
       periods.currentStart,
     );
 
+    final trend = _buildTrend(incomes, expenses, now);
+
     final summary = DashboardSummary(
       totalIncomes: currentIncomes,
       totalExpenses: currentExpenses,
@@ -123,8 +143,83 @@ class DashboardController {
       previousExpenses: previousExpenses,
       totalBalance: totalBalance,
       denominationBalances: denominations,
+      trend: trend,
     );
     onSummaryUpdated(summary);
+  }
+
+  List<TrendBucket> _buildTrend(
+    List<CashEntry> incomes,
+    List<CashEntry> expenses,
+    DateTime now,
+  ) {
+    switch (range) {
+      case DashboardRange.day:
+        // 24 hourly buckets ending at current hour.
+        final start = DateTime(now.year, now.month, now.day);
+        return List.generate(24, (i) {
+          final bucketStart = start.add(Duration(hours: i));
+          final bucketEnd = bucketStart.add(const Duration(hours: 1));
+          return TrendBucket(
+            label: '${bucketStart.hour}h',
+            start: bucketStart,
+            incomes: _sumEntries(incomes, bucketStart, bucketEnd),
+            expenses: _sumEntries(expenses, bucketStart, bucketEnd),
+          );
+        });
+      case DashboardRange.week:
+        // 7 daily buckets, current week (Mon..Sun).
+        final weekStart = DateTime(
+          now.year,
+          now.month,
+          now.day,
+        ).subtract(Duration(days: now.weekday - 1));
+        return List.generate(7, (i) {
+          final bucketStart = weekStart.add(Duration(days: i));
+          final bucketEnd = bucketStart.add(const Duration(days: 1));
+          return TrendBucket(
+            label: _shortWeekday(bucketStart.weekday),
+            start: bucketStart,
+            incomes: _sumEntries(incomes, bucketStart, bucketEnd),
+            expenses: _sumEntries(expenses, bucketStart, bucketEnd),
+          );
+        });
+      case DashboardRange.month:
+        // Daily buckets for current month.
+        final start = DateTime(now.year, now.month);
+        final daysInMonth = DateTime(now.year, now.month + 1, 0).day;
+        return List.generate(daysInMonth, (i) {
+          final bucketStart = start.add(Duration(days: i));
+          final bucketEnd = bucketStart.add(const Duration(days: 1));
+          return TrendBucket(
+            label: '${bucketStart.day}',
+            start: bucketStart,
+            incomes: _sumEntries(incomes, bucketStart, bucketEnd),
+            expenses: _sumEntries(expenses, bucketStart, bucketEnd),
+          );
+        });
+    }
+  }
+
+  String _shortWeekday(int weekday) {
+    switch (weekday) {
+      case DateTime.monday:
+        return 'L';
+      case DateTime.tuesday:
+        return 'M';
+      case DateTime.wednesday:
+        return 'X';
+      case DateTime.thursday:
+        return 'J';
+      case DateTime.friday:
+        return 'V';
+      case DateTime.saturday:
+        return 'S';
+      case DateTime.sunday:
+        return 'D';
+      default:
+        return '';
+    }
   }
 
   _Period _buildPeriods(DateTime now) {

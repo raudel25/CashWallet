@@ -95,6 +95,26 @@ class CashEntry {
     'breakdown': breakdown.map((item) => item.toJson()).toList(),
   });
 
+  CashEntry copyWith({
+    String? description,
+    DateTime? createdAt,
+    List<DenominationCount>? breakdown,
+  }) {
+    final newBreakdown = breakdown ?? this.breakdown;
+    final newAmount = breakdown == null
+        ? amount
+        : newBreakdown.fold<double>(0, (sum, item) => sum + item.totalValue);
+    return CashEntry(
+      id: id,
+      type: type,
+      amount: newAmount,
+      description: description ?? this.description,
+      createdAt: createdAt ?? this.createdAt,
+      currencyCode: currencyCode,
+      breakdown: newBreakdown,
+    );
+  }
+
   static CashEntryType _typeFromString(String raw) {
     return CashEntryType.values.firstWhere(
       (type) => type.name == raw,

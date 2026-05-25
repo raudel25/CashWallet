@@ -36,6 +36,25 @@ class CashEntryRepository {
     }
   }
 
+  Future<void> add(String currencyCode, CashEntry entry) async {
+    final entries = await load(currencyCode);
+    await save(currencyCode, [entry, ...entries]);
+  }
+
+  Future<void> update(String currencyCode, CashEntry entry) async {
+    final entries = await load(currencyCode);
+    final updated = entries
+        .map((item) => item.id == entry.id ? entry : item)
+        .toList();
+    await save(currencyCode, updated);
+  }
+
+  Future<void> delete(String currencyCode, String entryId) async {
+    final entries = await load(currencyCode);
+    final updated = entries.where((item) => item.id != entryId).toList();
+    await save(currencyCode, updated);
+  }
+
   // Close controller when repository is disposed (not used currently).
   void dispose() {
     _changes.close();

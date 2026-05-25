@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../l10n/app_localizations.dart';
 import '../../services/security_service.dart';
 import '../widgets/confirm_dialog.dart';
@@ -17,6 +18,7 @@ class _SecurityPageState extends State<SecurityPage> {
   bool _biometricEnabled = false;
   bool _hasPin = false;
   bool _hasPassword = false;
+  int _autoLockMinutes = SecurityService.defaultAutoLockMinutes;
 
   @override
   void initState() {
@@ -29,18 +31,20 @@ class _SecurityPageState extends State<SecurityPage> {
     final bioEnabled = await widget.securityService.isBiometricEnabled();
     final hasPin = await widget.securityService.hasPin();
     final hasPwd = await widget.securityService.hasPassword();
+    final autoLock = await widget.securityService.getAutoLockMinutes();
     if (!mounted) return;
     setState(() {
       _biometricAvailable = bioAvail;
       _biometricEnabled = bioEnabled;
       _hasPin = hasPin;
       _hasPassword = hasPwd;
+      _autoLockMinutes = autoLock;
     });
   }
 
   Future<void> _setPin() async {
-    // If a password is set, warn that it will be removed
     final hasPwd = await widget.securityService.hasPassword();
+    if (!mounted) return;
     if (hasPwd) {
       final confirmed = await showConfirmDialog(
         context,
@@ -51,84 +55,20 @@ class _SecurityPageState extends State<SecurityPage> {
       );
       if (!confirmed) return;
     }
-    final formKey = GlobalKey<FormState>();
-    final ctrl1 = TextEditingController();
-    final ctrl2 = TextEditingController();
-    final node1 = FocusNode();
-    final node2 = FocusNode();
-    final res = await showDialog<bool>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text(context.t('security_set_pin')),
-          content: Form(
-            key: formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextFormField(
-                  controller: ctrl1,
-                  keyboardType: TextInputType.number,
-                  obscureText: true,
-                  focusNode: node1,
-                  decoration: InputDecoration(
-                    labelText: context.t('security_pin'),
-                  ),
-                  validator: (v) {
-                    if (v == null || v.trim().length < 6)
-                      return context.t('security_pin_min');
-                    return null;
-                  },
-                  onFieldSubmitted: (_) =>
-                      FocusScope.of(context).requestFocus(node2),
-                ),
-                TextFormField(
-                  controller: ctrl2,
-                  keyboardType: TextInputType.number,
-                  obscureText: true,
-                  focusNode: node2,
-                  decoration: InputDecoration(
-                    labelText: context.t('security_confirm'),
-                  ),
-                  validator: (v) {
-                    if (v != ctrl1.text)
-                      return context.t('security_confirm_match');
-                    return null;
-                  },
-                  onFieldSubmitted: (_) {
-                    if (formKey.currentState?.validate() ?? false) {
-                      Navigator.of(context).pop(true);
-                    }
-                  },
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: Text(context.t('common_cancel')),
-            ),
-            FilledButton(
-              onPressed: () {
-                if (formKey.currentState?.validate() ?? false)
-                  Navigator.of(context).pop(true);
-              },
-              child: Text(context.t('common_save')),
-            ),
-          ],
-        );
-      },
+    if (!mounted) return;
+    final value = await _showCredentialDialog(
+      title: context.t('security_set_pin'),
+      label: context.t('security_pin'),
+      isPin: true,
+      minLength: 6,
+      validatorKey: 'security_pin_min',
     );
-    if (res == true) {
-      await widget.securityService.setPin(ctrl1.text.trim());
-      if (hasPwd) {
-        await widget.securityService.removePassword();
-      }
-      await _loadState();
+    if (value == null) return;
+    await widget.securityService.setPin(value);
+    if (hasPwd) {
+      await widget.securityService.removePassword();
     }
-    node1.dispose();
-    node2.dispose();
+    await _loadState();
   }
 
   Future<void> _removePin() async {
@@ -137,28 +77,57 @@ class _SecurityPageState extends State<SecurityPage> {
   }
 
   Future<void> _setPassword() async {
-    // If a PIN is set, warn that it will be removed
     final hasPin = await widget.securityService.hasPin();
+    if (!mounted) return;
     if (hasPin) {
       final confirmed = await showConfirmDialog(
         context,
         title: context.t('security_confirm_remove_pin_title'),
         content: context.t('security_confirm_remove_pin_msg'),
-        confirmLabel: context.t('common_save'),
+        confirmLabel: context.t('common_continue'),
         cancelLabel: context.t('common_cancel'),
       );
       if (!confirmed) return;
     }
+    if (!mounted) return;
+    final value = await _showCredentialDialog(
+      title: context.t('security_set_password'),
+      label: context.t('security_password'),
+      isPin: false,
+      minLength: 6,
+      validatorKey: 'security_password_min',
+    );
+    if (value == null) return;
+    await widget.securityService.setPassword(value);
+    if (hasPin) {
+      await widget.securityService.removePin();
+    }
+    await _loadState();
+  }
+
+  Future<void> _removePassword() async {
+    await widget.securityService.removePassword();
+    await _loadState();
+  }
+
+  Future<String?> _showCredentialDialog({
+    required String title,
+    required String label,
+    required bool isPin,
+    required int minLength,
+    required String validatorKey,
+  }) async {
     final formKey = GlobalKey<FormState>();
     final ctrl1 = TextEditingController();
     final ctrl2 = TextEditingController();
     final node1 = FocusNode();
     final node2 = FocusNode();
-    final res = await showDialog<bool>(
+    String? result;
+    await showDialog<void>(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text(context.t('security_set_password')),
+          title: Text(title),
           content: Form(
             key: formKey,
             child: Column(
@@ -166,14 +135,15 @@ class _SecurityPageState extends State<SecurityPage> {
               children: [
                 TextFormField(
                   controller: ctrl1,
+                  keyboardType:
+                      isPin ? TextInputType.number : TextInputType.text,
                   obscureText: true,
                   focusNode: node1,
-                  decoration: InputDecoration(
-                    labelText: context.t('security_password'),
-                  ),
+                  decoration: InputDecoration(labelText: label),
                   validator: (v) {
-                    if (v == null || v.trim().length < 6)
-                      return context.t('security_password_min');
+                    if (v == null || v.trim().length < minLength) {
+                      return context.t(validatorKey);
+                    }
                     return null;
                   },
                   onFieldSubmitted: (_) =>
@@ -181,19 +151,23 @@ class _SecurityPageState extends State<SecurityPage> {
                 ),
                 TextFormField(
                   controller: ctrl2,
+                  keyboardType:
+                      isPin ? TextInputType.number : TextInputType.text,
                   obscureText: true,
                   focusNode: node2,
                   decoration: InputDecoration(
                     labelText: context.t('security_confirm'),
                   ),
                   validator: (v) {
-                    if (v != ctrl1.text)
+                    if (v != ctrl1.text) {
                       return context.t('security_confirm_match');
+                    }
                     return null;
                   },
                   onFieldSubmitted: (_) {
                     if (formKey.currentState?.validate() ?? false) {
-                      Navigator.of(context).pop(true);
+                      result = ctrl1.text.trim();
+                      Navigator.of(context).pop();
                     }
                   },
                 ),
@@ -202,44 +176,38 @@ class _SecurityPageState extends State<SecurityPage> {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
+              onPressed: () => Navigator.of(context).pop(),
               child: Text(context.t('common_cancel')),
             ),
             FilledButton(
               onPressed: () {
-                if (formKey.currentState?.validate() ?? false)
-                  Navigator.of(context).pop(true);
+                if (formKey.currentState?.validate() ?? false) {
+                  result = ctrl1.text.trim();
+                  Navigator.of(context).pop();
+                }
               },
-              child: Text(context.t('common_continue')),
+              child: Text(context.t('common_save')),
             ),
           ],
         );
       },
     );
-    if (res == true) {
-      await widget.securityService.setPassword(ctrl1.text.trim());
-      if (hasPin) {
-        await widget.securityService.removePin();
-      }
-      await _loadState();
-    }
-  }
-
-  Future<void> _removePassword() async {
-    await widget.securityService.removePassword();
-    await _loadState();
+    node1.dispose();
+    node2.dispose();
+    ctrl1.dispose();
+    ctrl2.dispose();
+    return result;
   }
 
   Future<void> _toggleBiometric(bool value) async {
+    final messenger = ScaffoldMessenger.of(context);
     try {
       if (value) {
-        debugPrint('SecurityPage: enabling biometric requested');
         final hasPin = await widget.securityService.hasPin();
         final hasPwd = await widget.securityService.hasPassword();
-        debugPrint('SecurityPage: hasPin=$hasPin, hasPwd=$hasPwd');
         if (!hasPin && !hasPwd) {
           if (!mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
+          messenger.showSnackBar(
             SnackBar(
               content: Text(
                 context.t('security_biometric_requires_credential'),
@@ -249,32 +217,29 @@ class _SecurityPageState extends State<SecurityPage> {
           return;
         }
         final available = await widget.securityService.isBiometricAvailable();
-        debugPrint('SecurityPage: biometric available => $available');
         if (!available) {
           if (!mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
+          messenger.showSnackBar(
             SnackBar(
               content: Text(context.t('security_biometric_unavailable')),
             ),
           );
           return;
         }
+        if (!mounted) return;
         final ok = await widget.securityService.authenticateBiometrics(
           reason: context.t('security_biometric_verify'),
         );
-        debugPrint('SecurityPage: authenticateBiometrics => $ok');
         if (!ok) {
           if (!mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
+          messenger.showSnackBar(
             SnackBar(content: Text(context.t('security_biometric_failed'))),
           );
           return;
         }
         await widget.securityService.setBiometricEnabled(true);
-        // Update UI immediately so switch reflects the change
         if (mounted) setState(() => _biometricEnabled = true);
       } else {
-        debugPrint('SecurityPage: disabling biometric requested');
         await widget.securityService.setBiometricEnabled(false);
         if (mounted) setState(() => _biometricEnabled = false);
       }
@@ -282,14 +247,56 @@ class _SecurityPageState extends State<SecurityPage> {
       debugPrint('SecurityPage: error toggling biometric: $e');
       debugPrint(st.toString());
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           SnackBar(content: Text(context.t('security_biometric_error'))),
         );
       }
     } finally {
-      // Refresh latest state from storage in background
       await _loadState();
     }
+  }
+
+  String _autoLockLabel(BuildContext context, int minutes) {
+    if (minutes <= 0) return context.t('security_auto_lock_immediately');
+    if (minutes >= 9999) return context.t('security_auto_lock_never');
+    return context.t(
+      'security_auto_lock_minutes',
+      params: {'minutes': '$minutes'},
+    );
+  }
+
+  Future<void> _openAutoLockSelector() async {
+    final options = <int>[0, 1, 5, 15, 30, 60, 9999];
+    final selected = await showModalBottomSheet<int>(
+      context: context,
+      builder: (context) {
+        return SafeArea(
+          child: ListView(
+            shrinkWrap: true,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text(
+                  context.t('security_auto_lock'),
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+              ),
+              ...options.map(
+                (m) => RadioListTile<int>(
+                  value: m,
+                  groupValue: _autoLockMinutes,
+                  title: Text(_autoLockLabel(context, m)),
+                  onChanged: (_) => Navigator.of(context).pop(m),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+    if (selected == null) return;
+    await widget.securityService.setAutoLockMinutes(selected);
+    await _loadState();
   }
 
   @override
@@ -348,6 +355,16 @@ class _SecurityPageState extends State<SecurityPage> {
               subtitle: Text(context.t('security_biometric_desc')),
             ),
           ),
+        const SizedBox(height: 12),
+        Card(
+          child: ListTile(
+            leading: const Icon(Icons.timer_outlined),
+            title: Text(context.t('security_auto_lock')),
+            subtitle: Text(context.t('security_auto_lock_desc')),
+            trailing: Text(_autoLockLabel(context, _autoLockMinutes)),
+            onTap: _openAutoLockSelector,
+          ),
+        ),
       ],
     );
   }

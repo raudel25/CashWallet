@@ -48,9 +48,10 @@ void main() {
           find.textContaining('History').evaluate().isNotEmpty,
       isTrue,
     );
+    // History page should show the income/expense filter labels.
     expect(
-      find.textContaining('movimiento').evaluate().isNotEmpty ||
-          find.textContaining('transaction').evaluate().isNotEmpty,
+      find.textContaining('Ingresos').evaluate().isNotEmpty ||
+          find.textContaining('Incomes').evaluate().isNotEmpty,
       isTrue,
     );
 
