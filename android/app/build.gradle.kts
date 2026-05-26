@@ -9,7 +9,7 @@ android {
     namespace = "com.example.cash_wallet"
     compileSdk = flutter.compileSdkVersion
     // Use the highest NDK required by plugins (backward compatible)
-    ndkVersion = "27.0.12077973"
+    ndkVersion = "29.0.14033849"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11

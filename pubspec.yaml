@@ -46,6 +46,11 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
 
+dependency_overrides:
+  # Pin to last version before jni was introduced — jni forces NDK 28.2.13676358
+  # via flutter.ndkVersion, which conflicts with our installed NDK 29.
+  path_provider_android: 2.2.23
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
