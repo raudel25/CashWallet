@@ -13,6 +13,8 @@ class CashEntry {
     required this.createdAt,
     required this.currencyCode,
     this.breakdown = const [],
+    this.transferId,
+    this.isOpening = false,
   });
 
   final String id;
@@ -22,6 +24,14 @@ class CashEntry {
   final DateTime createdAt;
   final String currencyCode;
   final List<DenominationCount> breakdown;
+
+  /// Set when this entry is one side of a transfer between accounts; both
+  /// sides share the id and don't count as income or expense.
+  final String? transferId;
+
+  /// Cash the user already had when starting to use the app. Counts in the
+  /// balance but not as income in the summary or projections.
+  final bool isOpening;
 
   factory CashEntry.createIncome({
     required List<DenominationCount> breakdown,
@@ -82,6 +92,8 @@ class CashEntry {
       breakdown: breakdownJson
           .map(DenominationCount.fromJson)
           .toList(growable: false),
+      transferId: data['transferId'] as String?,
+      isOpening: data['isOpening'] as bool? ?? false,
     );
   }
 
@@ -93,12 +105,15 @@ class CashEntry {
     'createdAt': createdAt.toIso8601String(),
     'currencyCode': currencyCode,
     'breakdown': breakdown.map((item) => item.toJson()).toList(),
+    if (transferId != null) 'transferId': transferId,
+    if (isOpening) 'isOpening': true,
   });
 
   CashEntry copyWith({
     String? description,
     DateTime? createdAt,
     List<DenominationCount>? breakdown,
+    bool? isOpening,
   }) {
     final newBreakdown = breakdown ?? this.breakdown;
     final newAmount = breakdown == null
@@ -112,6 +127,8 @@ class CashEntry {
       createdAt: createdAt ?? this.createdAt,
       currencyCode: currencyCode,
       breakdown: newBreakdown,
+      transferId: transferId,
+      isOpening: isOpening ?? this.isOpening,
     );
   }
 

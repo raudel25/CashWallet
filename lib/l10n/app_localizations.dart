@@ -225,6 +225,137 @@ class AppLocalizations {
       'security_auto_lock_immediately': 'Immediately',
       'security_auto_lock_minutes': '{minutes} minutes',
       'security_auto_lock_never': 'Never',
+
+      // Crypto
+      'tab_crypto': 'Crypto',
+      'crypto_total_title': 'Total in crypto (≈ USD)',
+      'crypto_wallets_count': '{count} wallets',
+      'crypto_add_wallet': 'Add wallet',
+      'crypto_new_wallet': 'New wallet',
+      'crypto_edit_wallet': 'Edit wallet',
+      'crypto_empty_title': 'You have no crypto wallets yet',
+      'crypto_empty_desc':
+          'Add a wallet to track your stablecoins by network (BEP20, TRC20…).',
+      'crypto_wallet_name': 'Name',
+      'crypto_wallet_name_hint': 'e.g. Trust Wallet',
+      'crypto_wallet_name_required': 'Enter a name',
+      'crypto_network': 'Network',
+      'crypto_token': 'Token',
+      'crypto_address': 'Public address (optional)',
+      'crypto_address_helper':
+          'Only the public address. Never share your seed phrase or private key.',
+      'crypto_address_invalid': 'Invalid address for {network}',
+      'crypto_address_copied': 'Address copied.',
+      'crypto_initial_balance': 'Initial balance',
+      'crypto_amount': 'Amount',
+      'crypto_amount_invalid': 'Enter an amount greater than zero',
+      'crypto_amount_exceeds': 'You only have {amount} available.',
+      'crypto_available': 'Available: {amount}',
+      'crypto_balance': 'Balance',
+      'crypto_movements': 'Movements',
+      'crypto_no_movements_title': 'No movements yet',
+      'crypto_no_movements_desc':
+          'Record incomes and expenses for this wallet.',
+      'crypto_no_balance_for_expense':
+          'This wallet has no balance to record an expense.',
+      'crypto_movement_saved': 'Movement saved.',
+      'crypto_wallet_saved': 'Wallet saved.',
+      'crypto_wallet_deleted': 'Wallet deleted.',
+      'crypto_delete_wallet_title': 'Delete wallet',
+      'crypto_delete_wallet_msg':
+          'This will delete the wallet and all its movements. This action cannot be undone.',
+      'crypto_onchain_balance': 'On-chain balance',
+      'crypto_syncing': 'Reading blockchain…',
+      'crypto_sync_failed':
+          'Could not read the balance. Check your connection.',
+      'crypto_retry': 'Retry',
+      'crypto_in_sync': 'Matches the blockchain',
+      'crypto_recorded_balance': 'Recorded: {amount}',
+      'crypto_difference': 'Difference: {amount}',
+      'crypto_adjust': 'Adjust',
+      'crypto_adjust_title': 'Adjust balance',
+      'crypto_adjust_msg':
+          'The opening balance will change by {amount} to match the blockchain. It does not count as income or expense.',
+      'crypto_initial_balance_helper':
+          'If you entered an address, leave it empty to read it from the blockchain.',
+      'crypto_imported': '{count} movements imported from the blockchain.',
+      'crypto_imported_locked':
+          'Imported from the blockchain. Only the description can be edited.',
+      'crypto_history_failed':
+          'Could not import movements. The balance is up to date.',
+      'crypto_received_from': 'Received from {address}',
+      'crypto_sent_to': 'Sent to {address}',
+
+      // Summary
+      'tab_summary': 'Summary',
+      'tab_cash': 'Cash',
+      'months_short': 'Jan,Feb,Mar,Apr,May,Jun,Jul,Aug,Sep,Oct,Nov,Dec',
+      'summary_net_worth': 'Net worth (USD)',
+      'summary_cash': 'Cash',
+      'summary_missing_rates':
+          'No exchange rate for {codes}. They are left out of the totals; set the rate below.',
+      'summary_month_title': 'This month ({month})',
+      'summary_net': 'Net',
+      'summary_vs_previous': 'Expenses vs. last month: {amount}',
+      'summary_pace': 'At this pace you will spend {amount} this month.',
+      'summary_history_title': 'Last 6 months',
+      'summary_projection_title': 'Projection (next 3 months)',
+      'summary_projection_empty':
+          'Projections start after your first complete month of movements.',
+      'summary_projection_basis':
+          'Based on the average of the last {count} month(s). End-of-month net worth on the right.',
+      'summary_accounts_title': 'Accounts',
+      'summary_accounts_empty': 'No accounts with movements yet.',
+      'summary_rates_title': 'Exchange rates',
+      'summary_rate_missing': '{code}: no rate',
+      'summary_rate_auto': 'Automatic (official rate). Tap to set your own.',
+      'summary_rate_manual': 'Set by you',
+      'summary_rate_dialog_title': 'Rate for {code}',
+      'summary_rate_dialog_helper':
+          'Use the rate you actually trade at. Automatic rates are official and may differ from the street rate.',
+      'summary_rate_use_auto': 'Use automatic',
+
+      // Transfers
+      'transfer_title': 'Transfer',
+      'transfer_intro':
+          'Move money between your accounts. It does not count as income or expense; only the difference (fees, spread) counts as an expense.',
+      'transfer_from': 'From',
+      'transfer_to': 'To',
+      'transfer_note': 'Note (optional)',
+      'transfer_note_hint': 'e.g. P2P sale, exchange',
+      'transfer_save': 'Save transfer',
+      'transfer_saved': 'Transfer saved.',
+      'transfer_to_desc': 'Transfer to {account}',
+      'transfer_from_desc': 'Transfer from {account}',
+      'transfer_cost': 'Fee / difference: {amount} USD (counted as expense)',
+      'transfer_gain': 'You receive {amount} USD more (counted as income)',
+      'transfer_no_cost': 'No fee',
+      'transfer_rate': 'Implied rate: {rate}',
+      'transfer_pick_movement': 'Movement imported from the blockchain:',
+      'transfer_pick_hint': 'Choose a movement',
+      'transfer_no_outgoing':
+          'No imported outgoing movements available. Sync the wallet first.',
+      'transfer_no_incoming':
+          'No imported incoming movements available. Sync the wallet first.',
+      'transfer_error_accounts': 'Choose both accounts.',
+      'transfer_error_same': 'Source and destination must be different.',
+      'transfer_error_amount': 'Enter the amount on both sides.',
+      'transfer_error_stock':
+          'You do not have enough bills of that denomination.',
+      'transfer_error_balance': 'The amount exceeds the wallet balance.',
+      'transfer_error_pick_movement': 'Choose the imported movement.',
+      'transfer_mark': 'Mark as transfer',
+      'transfer_mark_desc': 'E.g. you sold these USDT for cash',
+
+      // Opening balance
+      'opening_mark': 'Mark as opening balance',
+      'opening_mark_desc':
+          'Money you already had. It will not count as income in the summary.',
+      'opening_unmark': 'Count as income',
+      'opening_unmark_desc': 'It will count as income again in the summary.',
+      'opening_marked': 'Marked as opening balance.',
+      'opening_unmarked': 'It counts as income again.',
+      'summary_transfer_costs': 'Includes {amount} in transfer fees.',
     },
     'es': {
       'app_title': 'Cash Wallet',
@@ -404,6 +535,138 @@ class AppLocalizations {
       'security_auto_lock_immediately': 'De inmediato',
       'security_auto_lock_minutes': '{minutes} minutos',
       'security_auto_lock_never': 'Nunca',
+
+      // Crypto
+      'tab_crypto': 'Cripto',
+      'crypto_total_title': 'Total en cripto (≈ USD)',
+      'crypto_wallets_count': '{count} wallets',
+      'crypto_add_wallet': 'Agregar wallet',
+      'crypto_new_wallet': 'Nueva wallet',
+      'crypto_edit_wallet': 'Editar wallet',
+      'crypto_empty_title': 'Aún no tienes wallets cripto',
+      'crypto_empty_desc':
+          'Agrega una wallet para llevar tus stablecoins por red (BEP20, TRC20…).',
+      'crypto_wallet_name': 'Nombre',
+      'crypto_wallet_name_hint': 'Ej. Trust Wallet',
+      'crypto_wallet_name_required': 'Ingresa un nombre',
+      'crypto_network': 'Red',
+      'crypto_token': 'Token',
+      'crypto_address': 'Dirección pública (opcional)',
+      'crypto_address_helper':
+          'Solo la dirección pública. Nunca compartas tu frase semilla ni tu clave privada.',
+      'crypto_address_invalid': 'Dirección inválida para {network}',
+      'crypto_address_copied': 'Dirección copiada.',
+      'crypto_initial_balance': 'Saldo inicial',
+      'crypto_amount': 'Monto',
+      'crypto_amount_invalid': 'Ingresa un monto mayor que cero',
+      'crypto_amount_exceeds': 'Solo tienes {amount} disponibles.',
+      'crypto_available': 'Disponible: {amount}',
+      'crypto_balance': 'Saldo',
+      'crypto_movements': 'Movimientos',
+      'crypto_no_movements_title': 'Sin movimientos todavía',
+      'crypto_no_movements_desc': 'Registra ingresos y gastos de esta wallet.',
+      'crypto_no_balance_for_expense':
+          'Esta wallet no tiene saldo para registrar un gasto.',
+      'crypto_movement_saved': 'Movimiento guardado.',
+      'crypto_wallet_saved': 'Wallet guardada.',
+      'crypto_wallet_deleted': 'Wallet eliminada.',
+      'crypto_delete_wallet_title': 'Eliminar wallet',
+      'crypto_delete_wallet_msg':
+          'Se eliminará la wallet y todos sus movimientos. Esta acción no se puede deshacer.',
+      'crypto_onchain_balance': 'Saldo on-chain',
+      'crypto_syncing': 'Leyendo blockchain…',
+      'crypto_sync_failed': 'No se pudo leer el saldo. Revisa tu conexión.',
+      'crypto_retry': 'Reintentar',
+      'crypto_in_sync': 'Cuadra con la blockchain',
+      'crypto_recorded_balance': 'Registrado: {amount}',
+      'crypto_difference': 'Diferencia: {amount}',
+      'crypto_adjust': 'Ajustar',
+      'crypto_adjust_title': 'Ajustar saldo',
+      'crypto_adjust_msg':
+          'El saldo inicial cambiará {amount} para coincidir con la blockchain. No cuenta como ingreso ni gasto.',
+      'crypto_initial_balance_helper':
+          'Si pusiste una dirección, déjalo vacío para leerlo de la blockchain.',
+      'crypto_imported': 'Se importaron {count} movimientos de la blockchain.',
+      'crypto_imported_locked':
+          'Importado de la blockchain. Solo puedes editar la descripción.',
+      'crypto_history_failed':
+          'No se pudieron importar movimientos. El saldo sí está actualizado.',
+      'crypto_received_from': 'Recibido de {address}',
+      'crypto_sent_to': 'Enviado a {address}',
+
+      // Summary
+      'tab_summary': 'Resumen',
+      'tab_cash': 'Efectivo',
+      'months_short': 'Ene,Feb,Mar,Abr,May,Jun,Jul,Ago,Sep,Oct,Nov,Dic',
+      'summary_net_worth': 'Patrimonio total (USD)',
+      'summary_cash': 'Efectivo',
+      'summary_missing_rates':
+          'No hay tipo de cambio para {codes}. Quedan fuera de los totales; configúralo abajo.',
+      'summary_month_title': 'Este mes ({month})',
+      'summary_net': 'Neto',
+      'summary_vs_previous': 'Gastos vs. mes anterior: {amount}',
+      'summary_pace': 'A este ritmo gastarás {amount} este mes.',
+      'summary_history_title': 'Últimos 6 meses',
+      'summary_projection_title': 'Proyección (próximos 3 meses)',
+      'summary_projection_empty':
+          'Las proyecciones empiezan cuando tengas tu primer mes completo de movimientos.',
+      'summary_projection_basis':
+          'Basada en el promedio de los últimos {count} mes(es). A la derecha, el patrimonio estimado al cierre.',
+      'summary_accounts_title': 'Cuentas',
+      'summary_accounts_empty': 'Aún no hay cuentas con movimientos.',
+      'summary_rates_title': 'Tipos de cambio',
+      'summary_rate_missing': '{code}: sin tasa',
+      'summary_rate_auto':
+          'Automático (tasa oficial). Toca para poner la tuya.',
+      'summary_rate_manual': 'Configurado por ti',
+      'summary_rate_dialog_title': 'Tasa de {code}',
+      'summary_rate_dialog_helper':
+          'Usa la tasa a la que realmente cambias. Las automáticas son oficiales y pueden diferir de la tasa de la calle.',
+      'summary_rate_use_auto': 'Usar automática',
+
+      // Transfers
+      'transfer_title': 'Transferir',
+      'transfer_intro':
+          'Mueve dinero entre tus cuentas. No cuenta como ingreso ni gasto; solo la diferencia (comisión, spread) cuenta como gasto.',
+      'transfer_from': 'Desde',
+      'transfer_to': 'Hacia',
+      'transfer_note': 'Nota (opcional)',
+      'transfer_note_hint': 'Ej. venta P2P, cambio',
+      'transfer_save': 'Guardar transferencia',
+      'transfer_saved': 'Transferencia guardada.',
+      'transfer_to_desc': 'Transferencia a {account}',
+      'transfer_from_desc': 'Transferencia desde {account}',
+      'transfer_cost':
+          'Comisión / diferencia: {amount} USD (cuenta como gasto)',
+      'transfer_gain': 'Recibes {amount} USD de más (cuenta como ingreso)',
+      'transfer_no_cost': 'Sin comisión',
+      'transfer_rate': 'Tasa implícita: {rate}',
+      'transfer_pick_movement': 'Movimiento importado de la blockchain:',
+      'transfer_pick_hint': 'Elige un movimiento',
+      'transfer_no_outgoing':
+          'No hay salidas importadas disponibles. Sincroniza la wallet primero.',
+      'transfer_no_incoming':
+          'No hay entradas importadas disponibles. Sincroniza la wallet primero.',
+      'transfer_error_accounts': 'Elige las dos cuentas.',
+      'transfer_error_same': 'El origen y el destino deben ser distintos.',
+      'transfer_error_amount': 'Indica el monto en los dos lados.',
+      'transfer_error_stock':
+          'No tienes suficientes billetes de esa denominación.',
+      'transfer_error_balance': 'El monto supera el saldo de la wallet.',
+      'transfer_error_pick_movement': 'Elige el movimiento importado.',
+      'transfer_mark': 'Marcar como transferencia',
+      'transfer_mark_desc': 'Ej. vendiste estos USDT por efectivo',
+
+      // Opening balance
+      'opening_mark': 'Marcar como saldo inicial',
+      'opening_mark_desc':
+          'Dinero que ya tenías. No contará como ingreso en el resumen.',
+      'opening_unmark': 'Contar como ingreso',
+      'opening_unmark_desc': 'Volverá a contar como ingreso en el resumen.',
+      'opening_marked': 'Marcado como saldo inicial.',
+      'opening_unmarked': 'Vuelve a contar como ingreso.',
+      'summary_transfer_costs':
+          'Incluye {amount} en comisiones de transferencias.',
     },
   };
 }

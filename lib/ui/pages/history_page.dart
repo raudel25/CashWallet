@@ -186,6 +186,24 @@ class HistoryPageState extends State<HistoryPage> {
     );
   }
 
+  Future<void> _toggleOpening(CashEntry entry) async {
+    await widget.incomeRepository.update(
+      _currencyCode,
+      entry.copyWith(isOpening: !entry.isOpening),
+    );
+    await refresh(_currencyCode);
+    widget.onChanged?.call();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          context.t(entry.isOpening ? 'opening_unmarked' : 'opening_marked'),
+        ),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
   Future<void> _pickDateRange() async {
     final now = DateTime.now();
     final initial =
@@ -342,6 +360,12 @@ class HistoryPageState extends State<HistoryPage> {
                             highlightColor: highlightColor,
                             amountPrefix: prefix,
                             onEdit: () => _editEntry(entry),
+                            // Only incomes can be cash the user already had.
+                            onToggleOpening:
+                                entry.type == CashEntryType.income &&
+                                    entry.transferId == null
+                                ? () => _toggleOpening(entry)
+                                : null,
                             onDelete: () async {
                               if (await _confirmDelete()) {
                                 await _removeEntry(entry);
@@ -376,6 +400,7 @@ class _HistoryTile extends StatelessWidget {
     required this.onEdit,
     required this.onDelete,
     required this.currencySymbol,
+    this.onToggleOpening,
   });
 
   final CashEntry entry;
@@ -384,6 +409,7 @@ class _HistoryTile extends StatelessWidget {
   final VoidCallback onEdit;
   final VoidCallback onDelete;
   final String currencySymbol;
+  final VoidCallback? onToggleOpening;
 
   String _formatAmount(double value) {
     if (value == value.roundToDouble()) {
@@ -465,6 +491,23 @@ class _HistoryTile extends StatelessWidget {
                       _formatDate(entry.createdAt),
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
+                    if (entry.isOpening) ...[
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.flag_outlined,
+                            size: 14,
+                            color: Theme.of(context).hintColor,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            context.t('crypto_initial_balance'),
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        ],
+                      ),
+                    ],
                     if (entry.breakdown.isNotEmpty) ...[
                       const SizedBox(height: 6),
                       Text(
@@ -487,8 +530,31 @@ class _HistoryTile extends StatelessWidget {
                 onSelected: (value) {
                   if (value == 'edit') onEdit();
                   if (value == 'delete') onDelete();
+                  if (value == 'opening') onToggleOpening?.call();
                 },
                 itemBuilder: (context) => [
+                  if (onToggleOpening != null)
+                    PopupMenuItem(
+                      value: 'opening',
+                      child: Row(
+                        children: [
+                          Icon(
+                            entry.isOpening
+                                ? Icons.trending_up
+                                : Icons.flag_outlined,
+                            size: 18,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            context.t(
+                              entry.isOpening
+                                  ? 'opening_unmark'
+                                  : 'opening_mark',
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   PopupMenuItem(
                     value: 'edit',
                     child: Row(

@@ -2,19 +2,31 @@ import 'package:flutter/material.dart';
 
 import '../controllers/dashboard_controller.dart';
 import '../data/cash_entry_repository.dart';
+import '../data/crypto_entry_repository.dart';
+import '../data/crypto_sync_state_repository.dart';
+import '../data/crypto_wallet_repository.dart';
 import '../data/denomination_repository.dart';
+import '../services/chain_balance_service.dart';
+import '../services/chain_history_service.dart';
+import '../services/crypto_sync_service.dart';
+import '../services/exchange_rate_service.dart';
+import '../services/finance_summary_service.dart';
+import '../services/transfer_service.dart';
 import '../services/security_service.dart';
 import '../l10n/app_localizations.dart';
 import '../models/cash_entry.dart';
 import '../models/currency.dart';
 import '../services/language_service.dart';
 import '../services/currency_service.dart';
+import 'pages/crypto_page.dart';
 import 'pages/dashboard_page.dart';
 import 'pages/denominations_screen.dart';
 import 'pages/history_page.dart';
 import 'pages/settings_page.dart';
+import 'pages/summary_page.dart';
 import 'pages/security_screen.dart';
 import 'widgets/movement_form_sheet.dart';
+import 'widgets/transfer_sheet.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({
@@ -35,11 +47,38 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   final _dashboardKey = GlobalKey<DashboardPageState>();
   final _historyKey = GlobalKey<HistoryPageState>();
+  final _cryptoKey = GlobalKey<CryptoPageState>();
+  final _summaryKey = GlobalKey<SummaryPageState>();
   late final DashboardController _dashboardController;
 
   final _incomeRepository = CashEntryRepository('cash_wallet_incomes');
   final _expenseRepository = CashEntryRepository('cash_wallet_expenses');
   final _denominationRepository = const DenominationRepository();
+  final _cryptoWalletRepository = const CryptoWalletRepository();
+  final _cryptoEntryRepository = const CryptoEntryRepository();
+  late final _cryptoSyncService = CryptoSyncService(
+    balanceService: ChainBalanceService(),
+    historyService: ChainHistoryService(),
+    entryRepository: _cryptoEntryRepository,
+    syncStateRepository: const CryptoSyncStateRepository(),
+  );
+  final _exchangeRateService = ExchangeRateService();
+  late final _transferService = TransferService(
+    incomeRepository: _incomeRepository,
+    expenseRepository: _expenseRepository,
+    denominationRepository: _denominationRepository,
+    currencyService: _currencyService,
+    walletRepository: _cryptoWalletRepository,
+    cryptoEntryRepository: _cryptoEntryRepository,
+  );
+  late final _summaryService = FinanceSummaryService(
+    incomeRepository: _incomeRepository,
+    expenseRepository: _expenseRepository,
+    currencyService: _currencyService,
+    walletRepository: _cryptoWalletRepository,
+    cryptoEntryRepository: _cryptoEntryRepository,
+    exchangeRateService: _exchangeRateService,
+  );
   final CurrencyService _currencyService = CurrencyService();
   final LanguageService _languageService = LanguageService();
   final SecurityService _securityService = SecurityService();
@@ -98,7 +137,11 @@ class _HomePageState extends State<HomePage> {
       floatingActionButton: _buildFab(),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _currentIndex,
-        onDestinationSelected: (index) => setState(() => _currentIndex = index),
+        onDestinationSelected: (index) {
+          setState(() => _currentIndex = index);
+          // Other tabs may have changed data since the summary was built.
+          if (index == 0) _summaryKey.currentState?.refresh();
+        },
         destinations: _destinations
             .map(
               (destination) => NavigationDestination(
@@ -115,9 +158,23 @@ class _HomePageState extends State<HomePage> {
   Widget? _buildFab() {
     if (_currentIndex == 0) {
       return FloatingActionButton.extended(
+        onPressed: _openTransferSheet,
+        icon: const Icon(Icons.swap_horiz),
+        label: Text(context.t('transfer_title')),
+      );
+    }
+    if (_currentIndex == 1) {
+      return FloatingActionButton.extended(
         onPressed: _openQuickAddSheet,
         icon: const Icon(Icons.add),
         label: Text(context.t('home_register_movement')),
+      );
+    }
+    if (_currentIndex == 3) {
+      return FloatingActionButton.extended(
+        onPressed: () => _cryptoKey.currentState?.addWallet(),
+        icon: const Icon(Icons.add),
+        label: Text(context.t('crypto_add_wallet')),
       );
     }
 
@@ -127,6 +184,11 @@ class _HomePageState extends State<HomePage> {
   List<Widget> _buildPages() {
     final currency = _currentCurrency!;
     return [
+      SummaryPage(
+        key: _summaryKey,
+        summaryService: _summaryService,
+        exchangeRateService: _exchangeRateService,
+      ),
       DashboardPage(
         key: _dashboardKey,
         controller: _dashboardController,
@@ -140,6 +202,14 @@ class _HomePageState extends State<HomePage> {
         currency: currency,
         loadStock: _loadDenominationStock,
         onChanged: () => _dashboardController.refresh(),
+      ),
+      CryptoPage(
+        key: _cryptoKey,
+        transferService: _transferService,
+        onTransferSaved: _refreshAfterTransfer,
+        walletRepository: _cryptoWalletRepository,
+        entryRepository: _cryptoEntryRepository,
+        syncService: _cryptoSyncService,
       ),
       SettingsPage(
         currency: currency,
@@ -164,22 +234,58 @@ class _HomePageState extends State<HomePage> {
     if (!mounted) return;
     setState(() => _currentCurrency = currency);
     await _historyKey.currentState?.refresh(currency.code);
+    await _cryptoKey.currentState?.refresh();
+    await _summaryKey.currentState?.refresh();
+  }
+
+  Future<void> _openTransferSheet() async {
+    final saved = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => TransferSheet(transferService: _transferService),
+    );
+    if (saved != true) return;
+    await _refreshAfterTransfer();
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(context.t('transfer_saved'))));
+  }
+
+  /// A transfer touches cash and crypto: refresh every tab.
+  Future<void> _refreshAfterTransfer() async {
+    await _dashboardController.refresh();
+    await _historyKey.currentState?.refresh();
+    await _cryptoKey.currentState?.refresh();
+    await _summaryKey.currentState?.refresh();
   }
 
   List<_Destination> _buildDestinations(BuildContext context) {
     final loc = context.loc;
     return [
       _Destination(
-        label: loc.translate('tab_home'),
-        title: loc.translate('tab_home'),
-        icon: Icons.home_outlined,
-        selectedIcon: Icons.home,
+        label: loc.translate('tab_summary'),
+        title: loc.translate('tab_summary'),
+        icon: Icons.dashboard_outlined,
+        selectedIcon: Icons.dashboard,
+      ),
+      _Destination(
+        label: loc.translate('tab_cash'),
+        title: loc.translate('tab_cash'),
+        icon: Icons.payments_outlined,
+        selectedIcon: Icons.payments,
       ),
       _Destination(
         label: loc.translate('tab_history'),
         title: loc.translate('tab_history'),
         icon: Icons.history_outlined,
         selectedIcon: Icons.history,
+      ),
+      _Destination(
+        label: loc.translate('tab_crypto'),
+        title: loc.translate('tab_crypto'),
+        icon: Icons.account_balance_wallet_outlined,
+        selectedIcon: Icons.account_balance_wallet,
       ),
       _Destination(
         label: loc.translate('tab_settings'),

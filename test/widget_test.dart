@@ -15,16 +15,19 @@ void main() {
     SharedPreferences.setMockInitialValues({});
   });
 
-  testWidgets('Muestra la pantalla de inicio por defecto', (
+  testWidgets('Muestra el resumen por defecto y el efectivo en su pestaña', (
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(const CashWalletApp());
     await tester.pumpAndSettle();
 
-    final hasHomeLabel =
-        find.text('Inicio').evaluate().isNotEmpty ||
-        find.text('Home').evaluate().isNotEmpty;
-    expect(hasHomeLabel, isTrue);
+    final hasSummary =
+        find.textContaining('Patrimonio total').evaluate().isNotEmpty ||
+        find.textContaining('Net worth').evaluate().isNotEmpty;
+    expect(hasSummary, isTrue);
+
+    await tester.tap(find.byIcon(Icons.payments_outlined).last);
+    await tester.pumpAndSettle();
     final hasBalance =
         find.textContaining('Saldo total').evaluate().isNotEmpty ||
         find.textContaining('Total balance').evaluate().isNotEmpty;
@@ -78,6 +81,8 @@ void main() {
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(const CashWalletApp());
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.payments_outlined).last);
     await tester.pumpAndSettle();
 
     final fabEs = find.textContaining('Registrar movimiento');
